@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Plan de Capacitación - SIGEERN{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('planes.lista') }}">Planes</a></li>
+        <li class="breadcrumb-item active">Nuevo Plan</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-calendar-plus"></i> Crear Nuevo Plan de Capacitación
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="anio" class="form-label">Año del Plan *</label>
+                        <input type="number" class="form-control" id="anio" name="anio"
+                               value="{{ anio_actual }}" min="{{ anio_actual }}" required>
+                        <small class="text-muted">Ingrese el año para el plan de capacitación</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="monto_referencial" class="form-label">Monto Referencial ($) *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="monto_referencial"
+                                   name="monto_referencial" step="0.01" min="0" required
+                                   placeholder="50000.00">
+                        </div>
+                        <small class="text-muted">Monto total estimado para todas las capacitaciones</small>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Nota:</strong> Al crear el plan, se notificará a todos los directores
+                        para que registren sus necesidades de capacitación.
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Crear Plan
+                        </button>
+                        <a href="{{ url_for('planes.lista') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Ver Plan - SIGEERN{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('auth.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Plan {{ plan.anio }}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-calendar-check"></i> Plan {{ plan.anio }}</h2>
+    <span class="badge badge-estado estado-{{ plan.estado }} fs-6">{{ plan.estado.replace('_', ' ') }}</span>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Informacion
+            </div>
+            <div class="card-body">
+                <p><strong>Monto Referencial:</strong> ${{ "%.2f"|format(plan.monto_referencial) }}</p>
+                <p><strong>Total Seleccionado:</strong> ${{ "%.2f"|format(total_seleccionado) }}</p>
+                <p><strong>Temas Totales:</strong> {{ plan.get_temas_count() }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-collection"></i> Temas
+            </div>
+            <div class="card-body">
+                {% if temas_por_direccion %}
+                    {% for dir_nombre, data in temas_por_direccion.items() %}
+                    <h6 class="text-primary">{{ dir_nombre }}</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Tema</th>
+                                    <th>Modalidad</th>
+                                    <th>Horas</th>
+                                    <th>Participantes</th>
+                                    <th>Mes</th>
+                                    <th>Presupuesto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tema in data.temas %}
+                                <tr>
+                                    <td>{{ tema.nombre }}</td>
+                                    <td>{{ tema.modalidad }}</td>
+                                    <td>{{ tema.horas }}</td>
+                                    <td>{{ tema.num_participantes }}</td>
+                                    <td>{{ tema.get_nombre_mes() }}</td>
+                                    <td>${{ "%.2f"|format(tema.presupuesto_referencial) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-muted">Sin temas registrados.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-chat-left-text"></i> Observaciones
+            </div>
+            <div class="card-body">
+                {% if observaciones %}
+                    {% for obs in observaciones %}
+                    <div class="border-start border-3 ps-3 mb-3">
+                        <p class="mb-1">{{ obs.observacion }}</p>
+                        <small class="text-muted">{{ obs.autor }} - {{ obs.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-muted">Sin observaciones.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

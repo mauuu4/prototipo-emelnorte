@@ -1,0 +1,93 @@
+# EMPRESA ELÉCTRICA REGIONAL NORTE S.A. 
+
+## DIRECCIÓN DE TECNOLOGÍAS DE LA INFORMACIÓN Y COMUNICACIONES 
+
+### ACTA DE REUNIÓN DE TRABAJO Nro.BL-01 
+
+---
+
+**PROYECTO**  
+SISTEMA INTEGRADO DE GESTIÓN DE LA EMPRESA ELÉCTRICA REGIONAL NORTE SIGEERN 
+
+**SERVICIO**  
+MÓDULO DE CAPACITACIÓN 
+
+**TEMA**  
+Levantamiento de requerimientos para la implementación del Módulo de Gestión de Capacitación 
+
+**LUGAR**  
+Dirección de Talento Humano 
+
+**FECHA**  
+10/03/2026 
+
+**HORA INICIO**  
+10:00 am 
+
+**HORA FIN**  
+11:00 am 
+
+---
+
+## ANTECEDENTES 
+
+Con memorando EMELNORTE-DTH-2025-1412-MM la Dirección de Talento Humano solicita a la Dirección de TICS se realice la implementación de un sistema para la gestión de capacitación de acuerdo al procedimiento de “Elaboración y Ejecución del Plan de Capacitación”, con el fin de optimizar de manera ágil y sistematizada la obtención de los índices requeridos por el Ministerio de Energía y Minas respecto a los procesos de capacitación ejecutados por EMELNORTE. 
+
+En respuesta a la solicitud realizada por Talento Humano, con Memorando EMELNORTE-DTIC-2026-0090-MM del 04 de marzo del 2026, la directora de Tecnologías, Ing. Mary Vargas solicita a la Dirección de Talento Humano se designe a un funcionario responsable quienes junto con la Ing. Alexandra Cruz trabajaran en el levantamiento de requerimientos e implementación del módulo solicitado. 
+
+Mediante correo electrónico de fecha 08 de marzo del 2026 la Jefe de Personal designa a las Ingenieras Ximena Solano y Anita Valencia como usuarios funcionales responsables del sistema por parte de la Dirección de Talento Humano. 
+
+---
+
+## MODULO: SISTEMA DE GESTIÓN DE CAPACITACIÓN 
+
+## REQUERIMIENTOS Y NECESIDADES 
+
+| ID REQ. | DETALLE | PRIORIDAD |
+|--------|--------|-----------|
+| RN-01 | El Analista de Talento encargado de capacitación, debe poder registrar en el sistema el plan de capacitación, para esto registrar el año y el monto referencial asignado.<br><br>Tras el guardado exitoso, el sistema debe notificar vía correo electrónico a todos los directores de área para que empiecen a cargar el plan de capacitación de cada una de sus direcciones. | Alta |
+| RN-02 | Desarrollar una interfaz que permita a los directores registrar las necesidades de capacitación institucional para el periodo vigente.<br><br>Cada registro debe tener la siguiente información:<br><br>- Dirección, que es la misma del director que está registrando.<br>- Etapa funcional y subetapa funcional (Lista de selección)<br>- Nombre de la capacitación<br>- Número de participantes<br>- Modalidad (virtual, presencial, mixto)<br>- Tiempo en horas<br>- Presupuesto referencial (valor estimado)<br>- Mes de ejecución | Alta |
+| RN-03 | El sistema debe limitar el número máximo de temas de capacitación que cada Dirección puede registrar según las siguientes reglas:<br><br>- Dirección Comercial y Distribución: máximo 7 temas<br>- Resto de Direcciones: máximo 5 temas | Baja |
+| RN-04 | El Analista de Talento Humano debe poder:<br><br>- Agregar temas de capacitación adicionales si lo requiere.<br>- Registrar el valor del presupuesto referencial aprobado.<br>- Seleccionar o descartar los temas de capacitación registrados por las Direcciones.<br>- Visualizar el total del presupuesto acumulado de los temas seleccionados. | Alta |
+| RN-05 | El sistema debe generar una alerta automática al Analista de Talento Humano cuando el total del presupuesto de los temas de capacitación seleccionados supere el presupuesto referencial total aprobado. | Media |
+| RN-06 | El Analista de Talento Humano debe poder enviar el Plan Anual de Capacitación al jefe de personal para su revisión una vez que haya completado la selección de temas y el registro del presupuesto aprobado.<br><br>El plan debe cambiar de estado a 'En revisión' al momento del envío. | Alta |
+| RN-07 | El jefe de Personal debe poder revisar el Plan Anual de Capacitación enviado por el Analista y ejecutar una de las siguientes acciones:<br><br>- Agregar observaciones sobre el plan de capacitación<br>- Aprobar el plan y enviarlo al director para su revisión<br>- Devolver el plan al Analista de Talento Humano indicando las correcciones requeridas<br><br>En caso de devolución, el plan regresa al estado 'En corrección' y el Analista podrá realizar los ajustes necesarios antes de reenviarlo. | Alta |
+| RN-08 | Una vez aprobado por el jefe de Personal, el director debe recibir el plan para su revisión.<br><br>El director podrá visualizar el plan completo con los temas seleccionados, presupuesto y observaciones del jefe de Personal, para luego enviarlo al presidente para la aprobación final.<br><br>El estado del plan debe actualizarse a 'En aprobación'. | Alta |
+| RN-09 | El presidente es el único responsable de la aprobación final del Plan Anual de Capacitación.<br><br>Una vez que el presidente apruebe el plan, el sistema debe cambiar su estado a 'Aprobado' y bloquearlo de forma permanente.<br><br>El plan aprobado debe quedar en modo de solo lectura, sin posibilidad de modificación | Alta |
+| RN-10 | En la etapa de Ejecución, el sistema debe permitir seleccionar una capacitación del plan aprobado y registrar la siguiente información:<br><br>- Personal participante: código, nombres, cédula, cargo<br>- Valor total de la capacitación (sin IVA y con IVA)<br>- Proceso de contratación<br>- Centro de costo, etapa funcional y subetapa<br>- Fecha de inicio y fecha de fin<br>- Duración en horas<br>- Empresa capacitadora<br>- Tema de capacitación<br>- Tipo de certificación | Alta |
+| RN-11 | El sistema debe permitir adjuntar y visualizar el certificado digital de cada participante en la capacitación ejecutada. El certificado será adjuntado al sistema por la secretaria. | Media |
+| RN-12 | El sistema debe generar los siguientes reportes:<br><br>- Reporte anual y mensual de capacitaciones ejecutadas<br>- Reporte de planificación vs. ejecución (comparativo entre lo planificado y lo realmente ejecutado, incluyendo presupuesto y participantes) | Alta |
+| RN-13 | El sistema debe enviar notificaciones automáticas por correo electrónico en los siguientes eventos:<br><br>- Cuando el plan es enviado para revisión al jefe de Personal<br>- Cuando el jefe de Personal aprueba o devuelve el plan con observaciones<br>- Cuando el plan es enviado al director para revisión<br>- Cuando el plan es enviado al presidente para aprobación final<br>- Cuando el presidente aprueba el Plan Anual de Capacitación<br>- Recordatorio a los directores cuando llegue el mes de ejecución de las capacitaciones | Alta |
+
+---
+
+## RESOLUCIONES Y PENDIENTES 
+
+La dirección de Tics se compromete a levantar el acta con los requisitos indicados por los funcionarios de la dirección de talento humano. 
+
+---
+
+## ASISTENTES 
+
+| Nro. | NOMBRES | ROL | DIRECCION | FIRMA |
+|------|--------|-----|-----------|-------|
+| 1 | Ing. Anita Valencia | UF | Talento Humano |  |
+| 2 | Ing. Ximena Solano | UF | Talento Humano |  |
+| 3 | Ing. Diana Tituana | UF | Talento Humano |  |
+| 4 | Ing. Mary Vargas | CP | TICS |  |
+| 5 | Ing. Alexandra Cruz | JD | TICS |  |
+
+---
+
+## ABREVIATURAS 
+
+| SIGLA | DESCRIPCIÓN |
+|------|------------|
+| UF | USUARIO FINAL |
+| CP | COORDINADOR DEL PROYECTO |
+| ED | EQUIPO DE DESARROLLO |
+| JD | JEFE DE DESARROLLO |
+| BL | PRODUCTO BACKLOG |
+| SB | SPRINT BACKLOG |
+| RN | REQUERIMIENTOS Y NECESIDADES (SPRINT) |
+| LP | LEVANTAMIENTO DE PROCESOS |

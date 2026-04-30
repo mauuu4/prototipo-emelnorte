@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SIGEERN - Capacitación{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --emelnorte-primary: #1a5276;
+            --emelnorte-secondary: #2980b9;
+            --emelnorte-accent: #f39c12;
+        }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-emelnorte {
+            background: linear-gradient(135deg, var(--emelnorte-primary), var(--emelnorte-secondary));
+        }
+        .navbar-emelnorte .navbar-brand, .navbar-emelnorte .nav-link {
+            color: white !important;
+        }
+        .card-header {
+            background: linear-gradient(135deg, var(--emelnorte-primary), var(--emelnorte-secondary));
+            color: white;
+        }
+        .btn-primary {
+            background-color: var(--emelnorte-primary);
+            border-color: var(--emelnorte-primary);
+        }
+        .btn-primary:hover {
+            background-color: var(--emelnorte-secondary);
+            border-color: var(--emelnorte-secondary);
+        }
+        .btn-accent {
+            background-color: var(--emelnorte-accent);
+            border-color: var(--emelnorte-accent);
+            color: white;
+        }
+        .badge-estado {
+            font-size: 0.85rem;
+            padding: 0.4em 0.8em;
+        }
+        .estado-BORRADOR { background-color: #6c757d; }
+        .estado-EN_REVISION { background-color: #ffc107; color: #000; }
+        .estado-EN_CORRECCION { background-color: #fd7e14; }
+        .estado-EN_APROBACION { background-color: #0dcaf0; color: #000; }
+        .estado-APROBADO { background-color: #198754; }
+        .alerta-presupuesto {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .table-hover tbody tr:hover {
+            background-color: rgba(26, 82, 118, 0.05);
+        }
+        .card-counter {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .card-counter:hover {
+            transform: translateY(-5px);
+        }
+        .footer {
+            background-color: var(--emelnorte-primary);
+            color: white;
+            padding: 1rem 0;
+            margin-top: 3rem;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if session.get('usuario_id') %}
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-emelnorte">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('auth.dashboard') }}">
+                <i class="bi bi-building"></i> SIGEERN - Capacitación
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if session.usuario_rol == 'ANALISTA' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('planes.lista') }}">
+                            <i class="bi bi-calendar-check"></i> Planes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('ejecucion.lista') }}">
+                            <i class="bi bi-play-circle"></i> Ejecución
+                        </a>
+                    </li>
+                    {% elif session.usuario_rol == 'DIRECTOR' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('necesidades.lista') }}">
+                            <i class="bi bi-plus-circle"></i> Mis Necesidades
+                        </a>
+                    </li>
+                    {% elif session.usuario_rol == 'JEFE_PERSONAL' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('revision.lista_jefe') }}">
+                            <i class="bi bi-clipboard-check"></i> Revisar Planes
+                        </a>
+                    </li>
+                    {% elif session.usuario_rol == 'PRESIDENTE' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('revision.lista_presidente') }}">
+                            <i class="bi bi-check-circle"></i> Aprobar Planes
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{ session.usuario_nombre }}
+                            <span class="badge bg-light text-dark">{{ session.usuario_rol }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('auth.cambiar_usuario') }}">
+                                <i class="bi bi-arrow-left-right"></i> Cambiar Usuario
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer text-center">
+        <div class="container">
+            <p class="mb-0">
+                <i class="bi bi-lightning-charge"></i> EMELNORTE S.A. - Sistema Integrado de Gestión
+                <br>
+                <small>Módulo de Gestión de Capacitación - Prototipo v1.0</small>
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Ejecucion - SIGEERN{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('ejecucion.lista') }}">Ejecucion</a></li>
+        <li class="breadcrumb-item active">Nueva</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-plus-circle"></i> Registrar Capacitacion Ejecutada
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="tema_seleccionado_id" class="form-label">Tema Seleccionado *</label>
+                        <select class="form-select" id="tema_seleccionado_id" name="tema_seleccionado_id" required>
+                            <option value="">-- Seleccionar --</option>
+                            {% for ts in temas_seleccionados %}
+                            <option value="{{ ts.id }}">
+                                {{ ts.tema.nombre }} ({{ ts.plan.anio }}) - ${{ "%.2f"|format(ts.presupuesto_aprobado or ts.tema.presupuesto_referencial) }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="fecha_inicio" class="form-label">Fecha Inicio *</label>
+                            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="fecha_fin" class="form-label">Fecha Fin *</label>
+                            <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="duracion_horas" class="form-label">Duracion (horas) *</label>
+                            <input type="number" class="form-control" id="duracion_horas" name="duracion_horas" step="0.5" min="0.5" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="valor_sin_iva" class="form-label">Valor sin IVA *</label>
+                            <input type="number" class="form-control" id="valor_sin_iva" name="valor_sin_iva" step="0.01" min="0" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="proceso_contratacion" class="form-label">Proceso de Contratacion *</label>
+                            <input type="text" class="form-control" id="proceso_contratacion" name="proceso_contratacion" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="centro_costo" class="form-label">Centro de Costo *</label>
+                            <input type="text" class="form-control" id="centro_costo" name="centro_costo" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="empresa_capacitadora" class="form-label">Empresa Capacitadora *</label>
+                            <input type="text" class="form-control" id="empresa_capacitadora" name="empresa_capacitadora" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tipo_certificacion" class="form-label">Tipo de Certificacion *</label>
+                            <input type="text" class="form-control" id="tipo_certificacion" name="tipo_certificacion" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="observaciones" class="form-label">Observaciones</label>
+                            <input type="text" class="form-control" id="observaciones" name="observaciones">
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Guardar
+                        </button>
+                        <a href="{{ url_for('ejecucion.lista') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

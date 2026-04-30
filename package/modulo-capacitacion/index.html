@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIGEERN - Módulo de Capacitación</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --emelnorte-primary: #1a5276;
+            --emelnorte-secondary: #2980b9;
+            --emelnorte-accent: #f39c12;
+        }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-emelnorte {
+            background: linear-gradient(135deg, var(--emelnorte-primary), var(--emelnorte-secondary));
+        }
+        .card-header {
+            background: linear-gradient(135deg, var(--emelnorte-primary), var(--emelnorte-secondary));
+            color: white;
+        }
+        .btn-primary {
+            background-color: var(--emelnorte-primary);
+            border-color: var(--emelnorte-primary);
+        }
+        .btn-primary:hover {
+            background-color: var(--emelnorte-secondary);
+            border-color: var(--emelnorte-secondary);
+        }
+        .badge-estado {
+            font-size: 0.85rem;
+            padding: 0.4em 0.8em;
+        }
+        .estado-BORRADOR { background-color: #6c757d; }
+        .estado-EN_REVISION { background-color: #ffc107; color: #000; }
+        .estado-EN_CORRECCION { background-color: #fd7e14; }
+        .estado-EN_APROBACION { background-color: #0dcaf0; color: #000; }
+        .estado-APROBADO { background-color: #198754; }
+        .card-counter {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .footer {
+            background-color: var(--emelnorte-primary);
+            color: white;
+            padding: 1rem 0;
+            margin-top: 3rem;
+        }
+        .table-hover tbody tr:hover {
+            background-color: rgba(26, 82, 118, 0.05);
+        }
+        .alerta-presupuesto {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-emelnorte" id="mainNav" style="display:none;">
+        <div class="container">
+            <a class="navbar-brand" href="#" onclick="showScreen('dashboard')">
+                <i class="bi bi-building"></i> SIGEERN - Capacitación
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text text-white me-3" id="userInfo"></span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i> Cambiar
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+        <!-- ALERTA GLOBAL -->
+        <div id="globalAlert"></div>
+
+        <!-- LOGIN SCREEN -->
+        <div id="loginScreen" class="screen active">
+            <div class="row justify-content-center">
+                <div class="col-md-5">
+                    <div class="card shadow-lg mt-5">
+                        <div class="card-header text-center">
+                            <h4 class="mb-0"><i class="bi bi-lightning-charge"></i> EMELNORTE</h4>
+                            <p class="mb-0 mt-1"><small>Módulo de Gestión de Capacitación</small></p>
+                        </div>
+                        <div class="card-body p-4">
+                            <label class="form-label"><i class="bi bi-person-badge"></i> Seleccione su usuario:</label>
+                            <select class="form-select form-select-lg mb-4" id="userSelect">
+                                <option value="">-- Seleccionar --</option>
+                            </select>
+                            <button class="btn btn-primary w-100 btn-lg" onclick="login()">
+                                <i class="bi bi-box-arrow-in-right"></i> Ingresar
+                            </button>
+                            <hr class="my-4">
+                            <div class="text-center">
+                                <small class="text-muted">Prototipo de prueba</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD SCREEN -->
+        <div id="dashboardScreen" class="screen">
+            <h2 class="mb-4">
+                <i class="bi bi-house"></i> Dashboard
+                <span class="badge bg-primary" id="userRoleBadge"></span>
+            </h2>
+            <div class="row g-4 mb-4" id="dashboardStats"></div>
+            <div class="row" id="dashboardActions"></div>
+        </div>
+
+        <!-- PLANES LIST SCREEN -->
+        <div id="planesScreen" class="screen">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-calendar-check"></i> Planes de Capacitación</h2>
+                <button class="btn btn-primary" id="btnNuevoPlan">
+                    <i class="bi bi-plus-circle"></i> Nuevo Plan
+                </button>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Año</th>
+                                    <th>Monto Referencial</th>
+                                    <th>Estado</th>
+                                    <th>Temas</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="planesTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NUEVO PLAN SCREEN -->
+        <div id="nuevoPlanScreen" class="screen">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#" onclick="showScreen('planes')">Planes</a></li>
+                    <li class="breadcrumb-item active">Nuevo Plan</li>
+                </ol>
+            </nav>
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-calendar-plus"></i> Crear Nuevo Plan
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Año del Plan *</label>
+                                <input type="number" class="form-control" id="planAnio" value="2026">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Monto Referencial ($) *</label>
+                                <input type="number" class="form-control" id="planMonto" step="0.01" placeholder="50000.00">
+                            </div>
+                            <button class="btn btn-primary w-100" onclick="crearPlan()">
+                                <i class="bi bi-save"></i> Crear Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETALLE PLAN SCREEN -->
+        <div id="detallePlanScreen" class="screen">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#" onclick="showScreen('planes')">Planes</a></li>
+                    <li class="breadcrumb-item" id="detallePlanBreadcrumb">Plan 2026</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 id="detallePlanTitulo"><i class="bi bi-calendar-check"></i> Plan 2026</h2>
+                <span class="badge badge-estado" id="detallePlanEstado">BORRADOR</span>
+            </div>
+
+            <div class="alert alerta-presupuesto" id="alertaPresupuesto" style="display:none;">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>¡Alerta!</strong> El presupuesto seleccionado excede el monto referencial.
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-header"><i class="bi bi-info-circle"></i> Información</div>
+                        <div class="card-body">
+                            <p><strong>Monto Referencial:</strong> <span id="infoMontoRef">$0</span></p>
+                            <p><strong>Total Seleccionado:</strong> <span id="infoTotalSel">$0</span></p>
+                            <p><strong>Temas:</strong> <span id="infoTemas">0</span></p>
+                        </div>
+                    </div>
+                    <div class="card" id="accionesCard">
+                        <div class="card-header"><i class="bi bi-lightning"></i> Acciones</div>
+                        <div class="card-body">
+                            <button class="btn btn-primary w-100 mb-2" id="btnAgregarTema">
+                                <i class="bi bi-plus-circle"></i> Agregar Tema
+                            </button>
+                            <button class="btn btn-success w-100" id="btnEnviarRevision">
+                                <i class="bi bi-send"></i> Enviar a Revisión
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header"><i class="bi bi-collection"></i> Temas Registrados</div>
+                        <div class="card-body" id="temasContainer"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><i class="bi bi-chat-left-text"></i> Observaciones</div>
+                        <div class="card-body">
+                            <div id="observacionesList"></div>
+                            <div class="mt-3">
+                                <textarea class="form-control mb-2" id="nuevaObservacion" rows="2" placeholder="Agregar observación..."></textarea>
+                                <button class="btn btn-outline-primary btn-sm" onclick="agregarObservacion()">
+                                    <i class="bi bi-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NUEVO TEMA SCREEN -->
+        <div id="nuevoTemaScreen" class="screen">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#" onclick="showScreen('planes')">Planes</a></li>
+                    <li class="breadcrumb-item"><a href="#" id="temaBackToPlan">Plan 2026</a></li>
+                    <li class="breadcrumb-item active">Nuevo Tema</li>
+                </ol>
+            </nav>
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header"><i class="bi bi-plus-circle"></i> Agregar Tema</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre de Capacitación *</label>
+                                <input type="text" class="form-control" id="temaNombre">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Dirección *</label>
+                                    <select class="form-select" id="temaDireccion"></select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Modalidad *</label>
+                                    <select class="form-select" id="temaModalidad">
+                                        <option value="PRESENCIAL">Presencial</option>
+                                        <option value="VIRTUAL">Virtual</option>
+                                        <option value="MIXTO">Mixto</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Etapa Funcional *</label>
+                                    <select class="form-select" id="temaEtapa">
+                                        <option value="Administración y Gestión">Administración y Gestión</option>
+                                        <option value="Operación y Mantenimiento">Operación y Mantenimiento</option>
+                                        <option value="Comercialización">Comercialización</option>
+                                        <option value="Desarrollo y Planificación">Desarrollo y Planificación</option>
+                                        <option value="Seguridad y Salud Ocupacional">Seguridad y Salud Ocupacional</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Subetapa Funcional *</label>
+                                    <select class="form-select" id="temaSubetapa">
+                                        <option value="Gestión Administrativa">Gestión Administrativa</option>
+                                        <option value="Gestión Financiera">Gestión Financiera</option>
+                                        <option value="Gestión de Talento Humano">Gestión de Talento Humano</option>
+                                        <option value="Mantenimiento Preventivo">Mantenimiento Preventivo</option>
+                                        <option value="Mantenimiento Correctivo">Mantenimiento Correctivo</option>
+                                        <option value="Operación del Sistema">Operación del Sistema</option>
+                                        <option value="Atención al Cliente">Atención al Cliente</option>
+                                        <option value="Facturación y Cobranza">Facturación y Cobranza</option>
+                                        <option value="Planificación Estratégica">Planificación Estratégica</option>
+                                        <option value="Gestión de Proyectos">Gestión de Proyectos</option>
+                                        <option value="Prevención de Riesgos">Prevención de Riesgos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Participantes *</label>
+                                    <input type="number" class="form-control" id="temaParticipantes" min="1">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Horas *</label>
+                                    <input type="number" class="form-control" id="temaHoras" step="0.5" min="0.5">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Presupuesto ($) *</label>
+                                    <input type="number" class="form-control" id="temaPresupuesto" step="0.01">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mes de Ejecución *</label>
+                                <select class="form-select" id="temaMes">
+                                    <option value="1">Enero</option><option value="2">Febrero</option>
+                                    <option value="3">Marzo</option><option value="4">Abril</option>
+                                    <option value="5">Mayo</option><option value="6">Junio</option>
+                                    <option value="7">Julio</option><option value="8">Agosto</option>
+                                    <option value="9">Septiembre</option><option value="10">Octubre</option>
+                                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary w-100" onclick="crearTema()">
+                                <i class="bi bi-save"></i> Guardar Tema
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NECESIDADES SCREEN (DIRECTOR) -->
+        <div id="necesidadesScreen" class="screen">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-collection"></i> Mis Necesidades de Capacitación</h2>
+                <button class="btn btn-primary" id="btnNuevaNecesidad">
+                    <i class="bi bi-plus-circle"></i> Nueva Necesidad
+                </button>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Capacitación</th>
+                                    <th>Modalidad</th>
+                                    <th>Horas</th>
+                                    <th>Ppto. Ref.</th>
+                                    <th>Mes</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="necesidadesTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REVISION JEFE SCREEN -->
+        <div id="revisionJefeScreen" class="screen">
+            <h2><i class="bi bi-clipboard-check"></i> Revisar Planes (Jefe de Personal)</h2>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Año</th>
+                                    <th>Monto</th>
+                                    <th>Temas</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="revisionJefeTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REVISION DIRECTOR SCREEN -->
+        <div id="revisionDirectorScreen" class="screen">
+            <h2><i class="bi bi-check-circle"></i> Aprobar Planes (Director)</h2>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Año</th>
+                                    <th>Monto</th>
+                                    <th>Temas</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="revisionDirectorTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- APROBACION PRESIDENTE SCREEN -->
+        <div id="aprobacionPresidenteScreen" class="screen">
+            <h2><i class="bi bi-check-all"></i> Aprobación Final (Presidente)</h2>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Año</th>
+                                    <th>Monto Ref.</th>
+                                    <th>Estado</th>
+                                    <th>Temas</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="aprobacionPresidenteTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- EJECUCION SCREEN -->
+        <div id="ejecucionScreen" class="screen">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-play-circle"></i> Capacitaciones Ejecutadas</h2>
+                <button class="btn btn-primary" id="btnNuevaEjecucion">
+                    <i class="bi bi-plus-circle"></i> Nueva Capacitación
+                </button>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Capacitación</th>
+                                    <th>Fechas</th>
+                                    <th>Empresa</th>
+                                    <th>Participantes</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ejecucionTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NUEVA EJECUCION SCREEN -->
+        <div id="nuevaEjecucionScreen" class="screen">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#" onclick="showScreen('ejecucion')">Ejecución</a></li>
+                    <li class="breadcrumb-item active">Nueva Capacitación</li>
+                </ol>
+            </nav>
+            <div class="card">
+                <div class="card-header"><i class="bi bi-play-circle"></i> Registrar Capacitación Ejecutada</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tema de Capacitación *</label>
+                            <select class="form-select" id="ejecTema"></select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Empresa Capacitadora *</label>
+                            <input type="text" class="form-control" id="ejecEmpresa">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha Inicio *</label>
+                            <input type="date" class="form-control" id="ejecFechaInicio">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha Fin *</label>
+                            <input type="date" class="form-control" id="ejecFechaFin">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Horas *</label>
+                            <input type="number" class="form-control" id="ejecHoras" step="0.5">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Valor sin IVA ($) *</label>
+                            <input type="number" class="form-control" id="ejecValorSin" step="0.01">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Proceso Contratación *</label>
+                            <input type="text" class="form-control" id="ejecProceso">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Centro de Costo *</label>
+                            <input type="text" class="form-control" id="ejecCentro">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo Certificación *</label>
+                            <select class="form-select" id="ejecTipoCert">
+                                <option value="Certificado de Aprobación">Certificado de Aprobación</option>
+                                <option value="Diploma">Diploma</option>
+                                <option value="Constancia">Constancia</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Observaciones</label>
+                            <input type="text" class="form-control" id="ejecObs">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="crearEjecucion()">
+                        <i class="bi bi-save"></i> Guardar y Agregar Participantes
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PARTICIPANTES SCREEN -->
+        <div id="participantesScreen" class="screen">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#" onclick="showScreen('ejecucion')">Ejecución</a></li>
+                    <li class="breadcrumb-item active">Participantes</li>
+                </ol>
+            </nav>
+            <h2 id="participantesTitulo"><i class="bi bi-people"></i> Participantes</h2>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-person-plus"></i> Agregar Participante</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <input type="text" class="form-control" id="partCodigo" placeholder="Código">
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <input type="text" class="form-control" id="partNombres" placeholder="Nombres">
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <input type="text" class="form-control" id="partCedula" placeholder="Cédula">
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <input type="text" class="form-control" id="partCargo" placeholder="Cargo">
+                        </div>
+                        <div class="col-md-1 mb-2">
+                            <button class="btn btn-primary" onclick="agregarParticipante()">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Nombres</th>
+                                    <th>Cédula</th>
+                                    <th>Cargo</th>
+                                    <th>Certificado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="participantesTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="footer text-center">
+        <div class="container">
+            <p class="mb-0">
+                <i class="bi bi-lightning-charge"></i> EMELNORTE S.A. - SIGEERN
+                <br><small>Módulo de Capacitación - Prototipo v1.0</small>
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ================================================
+        // DATA STORE (localStorage simulation)
+        // ================================================
+
+        const DIRECCIONES = [
+            {id: 1, nombre: 'Dirección Comercial', abreviatura: 'DCO', max_temas: 7},
+            {id: 2, nombre: 'Dirección de Distribución', abreviatura: 'DDO', max_temas: 7},
+            {id: 3, nombre: 'Dirección Administrativa', abreviatura: 'DAD', max_temas: 5},
+            {id: 4, nombre: 'Dirección de Operaciones', abreviatura: 'DOP', max_temas: 5},
+            {id: 5, nombre: 'Dirección Financiera', abreviatura: 'DFI', max_temas: 5},
+            {id: 6, nombre: 'Talento Humano', abreviatura: 'DTH', max_temas: 5}
+        ];
+
+        const USUARIOS = [
+            {id: 1, nombre: 'Ana López', cedula: '1712345678', rol: 'ANALISTA', direccion_id: 6},
+            {id: 2, nombre: 'Carlos Mendoza', cedula: '1723456789', rol: 'DIRECTOR', direccion_id: 1},
+            {id: 3, nombre: 'María García', cedula: '1734567890', rol: 'DIRECTOR', direccion_id: 2},
+            {id: 4, nombre: 'Pedro Sánchez', cedula: '1745678901', rol: 'DIRECTOR', direccion_id: 3},
+            {id: 5, nombre: 'Laura Torres', cedula: '1756789012', rol: 'JEFE_PERSONAL', direccion_id: 6},
+            {id: 6, nombre: 'Roberto Díaz', cedula: '1767890123', rol: 'PRESIDENTE', direccion_id: null}
+        ];
+
+        const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+        let currentUser = null;
+        let currentPlanId = null;
+        let currentEjecucionId = null;
+
+        // ================================================
+        // DATA INITIALIZATION
+        // ================================================
+
+        function initializeData() {
+            if (!localStorage.getItem('planes')) {
+                const data = {
+                    planes: [
+                        {
+                            id: 1, anio: 2026, monto_referencial: 50000, monto_aprobado: null,
+                            estado: 'BORRADOR', observaciones: [], fecha_creacion: new Date().toISOString(),
+                            temas: [
+                                {id: 1, nombre: 'Excel Avanzado para Análisis de Datos', etapa: 'Administración y Gestión', subetapa: 'Gestión Administrativa', num_participantes: 15, modalidad: 'PRESENCIAL', horas: 40, presupuesto: 2500, mes: 3, usuario_id: 2, seleccionado: true, presupuesto_aprobado: 2500},
+                                {id: 2, nombre: 'Gestión de Proyectos con Metodología Ágil', etapa: 'Desarrollo y Planificación', subetapa: 'Gestión de Proyectos', num_participantes: 10, modalidad: 'VIRTUAL', horas: 30, presupuesto: 3500, mes: 4, usuario_id: 2, seleccionado: true, presupuesto_aprobado: 3000},
+                                {id: 3, nombre: 'Seguridad en Instalaciones Eléctricas', etapa: 'Seguridad y Salud Ocupacional', subetapa: 'Prevención de Riesgos', num_participantes: 20, modalidad: 'PRESENCIAL', horas: 20, presupuesto: 1800, mes: 5, usuario_id: 3, seleccionado: true, presupuesto_aprobado: 1800},
+                                {id: 4, nombre: 'Atención al Cliente Telefónico', etapa: 'Comercialización', subetapa: 'Atención al Cliente', num_participantes: 25, modalidad: 'MIXTO', horas: 24, presupuesto: 1200, mes: 3, usuario_id: 3, seleccionado: false, presupuesto_aprobado: null},
+                                {id: 5, nombre: 'Mantenimiento de Transformadores de Distribución', etapa: 'Operación y Mantenimiento', subetapa: 'Mantenimiento Preventivo', num_participantes: 8, modalidad: 'PRESENCIAL', horas: 48, presupuesto: 4500, mes: 6, usuario_id: 4, seleccionado: true, presupuesto_aprobado: 4500}
+                            ]
+                        },
+                        {
+                            id: 2, anio: 2025, monto_referencial: 45000, monto_aprobado: 42000,
+                            estado: 'APROBADO', observaciones: [{autor: 'Roberto Díaz', texto: 'Aprobado definitivamente.', tipo: 'APROBACION', fecha: '2025-02-28'}], fecha_creacion: '2025-01-15',
+                            temas: []
+                        }
+                    ],
+                    ejecuciones: [],
+                    nextPlanId: 3,
+                    nextTemaId: 6,
+                    nextEjecucionId: 1,
+                    nextParticipanteId: 1
+                };
+                localStorage.setItem('planes', JSON.stringify(data));
+            }
+        }
+
+        function getData() {
+            return JSON.parse(localStorage.getItem('planes'));
+        }
+
+        function saveData(data) {
+            localStorage.setItem('planes', JSON.stringify(data));
+        }
+
+        // ================================================
+        // NAVIGATION & UTILS
+        // ================================================
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId + 'Screen').classList.add('active');
+
+            if (screenId === 'dashboard') updateDashboard();
+            else if (screenId === 'planes') updatePlanesTable();
+            else if (screenId === 'necesidades') updateNecesidadesTable();
+            else if (screenId === 'revisionJefe') updateRevisionJefeTable();
+            else if (screenId === 'revisionDirector') updateRevisionDirectorTable();
+            else if (screenId === 'aprobacionPresidente') updateAprobacionPresidenteTable();
+            else if (screenId === 'ejecucion') updateEjecucionTable();
+        }
+
+        function alert(message, type = 'info') {
+            const container = document.getElementById('globalAlert');
+            container.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+            setTimeout(() => container.innerHTML = '', 5000);
+        }
+
+        // ================================================
+        // AUTH
+        // ================================================
+
+        function populateUserSelect() {
+            const select = document.getElementById('userSelect');
+            select.innerHTML = '<option value="">-- Seleccionar --</option>';
+            USUARIOS.forEach(u => {
+                const dir = DIRECCIONES.find(d => d.id === u.direccion_id);
+                select.innerHTML += `<option value="${u.id}">${u.nombre} (${u.rol})${dir ? ' - ' + dir.abreviatura : ''}</option>`;
+            });
+        }
+
+        function login() {
+            const userId = parseInt(document.getElementById('userSelect').value);
+            if (!userId) { alert('Seleccione un usuario', 'warning'); return; }
+
+            currentUser = USUARIOS.find(u => u.id === userId);
+            document.getElementById('userInfo').innerHTML = `<strong>${currentUser.nombre}</strong> <span class="badge bg-light text-dark">${currentUser.rol}</span>`;
+            document.getElementById('mainNav').style.display = 'flex';
+            document.getElementById('loginScreen').classList.remove('active');
+            showScreen('dashboard');
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('mainNav').style.display = 'none';
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('loginScreen').classList.add('active');
+            document.getElementById('userSelect').value = '';
+        }
+
+        function canAccess(...roles) {
+            return currentUser && roles.includes(currentUser.rol);
+        }
+
+        // ================================================
+        // DASHBOARD
+        // ================================================
+
+        function updateDashboard() {
+            const data = getData();
+            document.getElementById('userRoleBadge').textContent = currentUser.rol;
+
+            let statsHtml = '';
+            let actionsHtml = '';
+
+            if (currentUser.rol === 'ANALISTA') {
+                const borrador = data.planes.filter(p => p.estado === 'BORRADOR').length;
+                const revision = data.planes.filter(p => p.estado === 'EN_REVISION').length;
+                const aprobados = data.planes.filter(p => p.estado === 'APROBADO').length;
+                const ejec = data.ejecuciones.length;
+
+                statsHtml = `
+                    <div class="col-md-3"><div class="card card-counter"><div class="card-body text-center">
+                        <i class="bi bi-file-earmark-text display-4 text-muted"></i>
+                        <h3 class="mt-2 mb-0">${borrador}</h3><p class="text-muted mb-0">Planes Borrador</p>
+                    </div></div></div>
+                    <div class="col-md-3"><div class="card card-counter"><div class="card-body text-center">
+                        <i class="bi bi-hourglass-split display-4 text-warning"></i>
+                        <h3 class="mt-2 mb-0">${revision}</h3><p class="text-muted mb-0">Planes en Revisión</p>
+                    </div></div></div>
+                    <div class="col-md-3"><div class="card card-counter"><div class="card-body text-center">
+                        <i class="bi bi-check-circle display-4 text-success"></i>
+                        <h3 class="mt-2 mb-0">${aprobados}</h3><p class="text-muted mb-0">Planes Aprobados</p>
+                    </div></div></div>
+                    <div class="col-md-3"><div class="card card-counter"><div class="card-body text-center">
+                        <i class="bi bi-play-circle display-4 text-info"></i>
+                        <h3 class="mt-2 mb-0">${ejec}</h3><p class="text-muted mb-0">Ejecuciones</p>
+                    </div></div></div>`;
+
+                actionsHtml = `
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header"><i class="bi bi-lightning"></i> Acciones Rápidas</div>
+                            <div class="card-body">
+                                <button class="btn btn-primary w-100 mb-2" onclick="showScreen('planes'); document.getElementById('btnNuevoPlan').style.display='inline'">
+                                    <i class="bi bi-plus-circle"></i> Crear Plan
+                                </button>
+                                <button class="btn btn-outline-primary w-100 mb-2" onclick="showScreen('planes')">
+                                    <i class="bi bi-list-ul"></i> Ver Planes
+                                </button>
+                                <button class="btn btn-outline-primary w-100" onclick="showScreen('ejecucion')">
+                                    <i class="bi bi-play-circle"></i> Registrar Ejecución
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+            } else if (currentUser.rol === 'DIRECTOR') {
+                const misTemas = data.planes.flatMap(p => p.temas).filter(t => t.usuario_id === currentUser.id).length;
+                const enAprobacion = data.planes.filter(p => p.estado === 'EN_APROBACION').length;
+                const miDir = DIRECCIONES.find(d => d.id === currentUser.direccion_id);
+
+                statsHtml = `
+                    <div class="col-md-4"><div class="card card-counter"><div class="card-body text-center">
+                        <i class="bi bi-collection display-4 text-primary"></i>
+                        <h3 class="mt-2 mb-0">${misTemas}</h3><p class="text-muted mb-0">Mis Temas</p>
+                    </div></div></div>
+                    <div class="col-md-4"><div class="card card-counter"><div class="card-body text-center">
+                        <i class="bi bi-hourglass-split display-4 text-warning"></i>
+                        <h3 class="mt-2 mb-0">${enAprobacion}</h3><p class="text-muted mb-0">En Aprobación</p>
+                    </div></div></div>
+                    <div class="col-md-4"><div class="card card-counter"><div class="card-body text-center">
+                        <i class="bi bi-building display-4 text-secondary"></i>
+                        <h3 class="mt-2 mb-0">${miDir?.max_temas || 5}</h3><p class="text-muted mb-0">Máx. Temas</p>
+                    </div></div></div>`;
+
+                actionsHtml = `
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header"><i class="bi bi-lightning"></i> Acciones Rápidas</div>
+                            <div class="card-body">
+                                <button class="btn btn-primary w-100 mb-2" onclick="showScreen('necesidades')">
+                                    <i class="bi bi-plus-circle"></i> Registrar Necesidad
+                                </button>
+                                <button class="btn btn-outline-primary w-100" onclick="showScreen('necesidades')">
+                                    <i class="bi bi-list-ul"></i> Ver Mis Necesidades
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+            } else if (currentUser.rol === 'JEFE_PERSONAL') {
+                const revision = data.planes.filter(p => p.estado === 'EN_REVISION').length;
+                statsHtml = `
+                    <div class="col-md-6"><div class="card card-counter"><div class="card-body text-center">
+                        <i class="bi bi-clipboard-check display-4 text-warning"></i>
+                        <h3 class="mt-2 mb-0">${revision}</h3><p class="text-muted mb-0">Planes en Revisión</p>
+                    </div></div></div>`;
+                actionsHtml = `
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header"><i class="bi bi-lightning"></i> Acciones Rápidas</div>
+                            <div class="card-body">
+                                <button class="btn btn-primary w-100" onclick="showScreen('revisionJefe')">
+                                    <i class="bi bi-list-ul"></i> Revisar Planes
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+            } else if (currentUser.rol === 'PRESIDENTE') {
+                const aprobacion = data.planes.filter(p => p.estado === 'EN_APROBACION').length;
+                statsHtml = `
+                    <div class="col-md-6"><div class="card card-counter"><div class="card-body text-center">
+                        <i class="bi bi-check-all display-4 text-success"></i>
+                        <h3 class="mt-2 mb-0">${aprobacion}</h3><p class="text-muted mb-0">Planes Pendientes</p>
+                    </div></div></div>`;
+                actionsHtml = `
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header"><i class="bi bi-lightning"></i> Acciones Rápidas</div>
+                            <div class="card-body">
+                                <button class="btn btn-primary w-100" onclick="showScreen('aprobacionPresidente')">
+                                    <i class="bi bi-list-ul"></i> Aprobar Planes
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            document.getElementById('dashboardStats').innerHTML = statsHtml;
+            document.getElementById('dashboardActions').innerHTML = actionsHtml;
+
+            // Mostrar/ocultar botón Nuevo Plan según rol
+            document.getElementById('btnNuevoPlan').style.display = canAccess('ANALISTA') ? 'inline' : 'none';
+        }
+
+        // ================================================
+        // PLANES
+        // ================================================
+
+        function updatePlanesTable() {
+            const data = getData();
+            let html = '';
+            data.planes.forEach(p => {
+                const temasSel = p.temas.filter(t => t.seleccionado).length;
+                html += `<tr>
+                    <td><strong>${p.anio}</strong></td>
+                    <td>$${p.monto_referencial.toLocaleString('es-EC', {minimumFractionDigits: 2})}</td>
+                    <td><span class="badge badge-estado estado-${p.estado}">${p.estado.replace('_', ' ')}</span></td>
+                    <td>${p.temas.length}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="verDetallePlan(${p.id})">
+                            <i class="bi bi-eye"></i> Ver
+                        </button>
+                        ${p.estado === 'EN_APROBACION' && canAccess('DIRECTOR') ?
+                            `<button class="btn btn-sm btn-success" onclick="aprobarDirector(${p.id})">
+                                <i class="bi bi-check"></i> Aprobar
+                            </button>` : ''}
+                    </td>
+                </tr>`;
+            });
+            document.getElementById('planesTable').innerHTML = html;
+            document.getElementById('btnNuevoPlan').style.display = canAccess('ANALISTA') ? 'inline' : 'none';
+        }
+
+        function crearPlan() {
+            const anio = parseInt(document.getElementById('planAnio').value);
+            const monto = parseFloat(document.getElementById('planMonto').value);
+
+            if (!anio || !monto) { alert('Complete todos los campos', 'warning'); return; }
+
+            const data = getData();
+            if (data.planes.some(p => p.anio === anio)) {
+                alert('Ya existe un plan para ese año', 'warning');
+                return;
+            }
+
+            data.planes.push({
+                id: data.nextPlanId++,
+                anio, monto_referencial: monto, monto_aprobado: null,
+                estado: 'BORRADOR', observaciones: [],
+                fecha_creacion: new Date().toISOString(),
+                temas: []
+            });
+            saveData(data);
+            alert('Plan creado exitosamente', 'success');
+            showScreen('planes');
+            document.getElementById('planAnio').value = anio + 1;
+            document.getElementById('planMonto').value = '';
+        }
+
+        function verDetallePlan(planId) {
+            currentPlanId = planId;
+            const data = getData();
+            const plan = data.planes.find(p => p.id === planId);
+
+            document.getElementById('detallePlanBreadcrumb').textContent = `Plan ${plan.anio}`;
+            document.getElementById('detallePlanTitulo').innerHTML = `<i class="bi bi-calendar-check"></i> Plan ${plan.anio}`;
+            document.getElementById('detallePlanEstado').textContent = plan.estado.replace('_', ' ');
+            document.getElementById('detallePlanEstado').className = `badge badge-estado estado-${plan.estado}`;
+
+            const totalSel = plan.temas.filter(t => t.seleccionado).reduce((sum, t) => sum + (t.presupuesto_aprobado || t.presupuesto), 0);
+            document.getElementById('infoMontoRef').textContent = `$${plan.monto_referencial.toLocaleString('es-EC', {minimumFractionDigits: 2})}`;
+            document.getElementById('infoTotalSel').textContent = `$${totalSel.toLocaleString('es-EC', {minimumFractionDigits: 2})}`;
+            document.getElementById('infoTemas').textContent = plan.temas.length;
+
+            // Alerta presupuesto
+            const alerta = document.getElementById('alertaPresupuesto');
+            alerta.style.display = totalSel > plan.monto_referencial ? 'block' : 'none';
+            if (alerta.style.display === 'block') {
+                alerta.innerHTML = `<i class="bi bi-exclamation-triangle"></i>
+                    <strong>¡Alerta!</strong> El presupuesto seleccionado ($${totalSel.toLocaleString('es-EC', {minimumFractionDigits: 2})})
+                    excede el monto referencial ($${plan.monto_referencial.toLocaleString('es-EC', {minimumFractionDigits: 2})})`;
+            }
+
+            // Temas
+            let temasHtml = '';
+            if (plan.temas.length > 0) {
+                const temasPorDir = {};
+                plan.temas.forEach(t => {
+                    const dir = USUARIOS.find(u => u.id === t.usuario_id)?.direccion_id || 0;
+                    const dirObj = DIRECCIONES.find(d => d.id === dir);
+                    const dirName = dirObj?.nombre || 'Sin dirección';
+                    if (!temasPorDir[dirName]) temasPorDir[dirName] = [];
+                    temasPorDir[dirName].push(t);
+                });
+
+                for (const [dirName, temas] of Object.entries(temasPorDir)) {
+                    temasHtml += `<div class="mb-3">
+                        <h5 class="text-primary"><i class="bi bi-building"></i> ${dirName}</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead><tr>
+                                    <th>Tema</th><th>Modalidad</th><th>Horas</th><th>Part.</th>
+                                    <th>Mes</th><th>Ppto Ref.</th>
+                                    ${canAccess('ANALISTA') ? '<th>Ppto Apr.</th><th>Sel.</th><th>Acciones</th>' : ''}
+                                </tr></thead><tbody>`;
+                    temas.forEach(t => {
+                        const dir = USUARIOS.find(u => u.id === t.usuario_id);
+                        const dirMax = dir ? (DIRECCIONES.find(d => d.id === dir.direccion_id)?.max_temas || 5) : 5;
+                        temasHtml += `<tr>
+                            <td>${t.nombre}</td>
+                            <td>${t.modalidad}</td>
+                            <td>${t.horas}</td>
+                            <td>${t.num_participantes}</td>
+                            <td>${MESES[t.mes]}</td>
+                            <td>$${t.presupuesto.toLocaleString('es-EC', {minimumFractionDigits: 2})}</td>
+                            ${canAccess('ANALISTA') ? `
+                                <td>${t.seleccionado ? `$${t.presupuesto_aprobado?.toLocaleString('es-EC', {minimumFractionDigits: 2}) || '-'}` : '-'}</td>
+                                <td>
+                                    <button class="btn btn-sm ${t.seleccionado ? 'btn-success' : 'btn-outline-secondary'}"
+                                        onclick="toggleSeleccion(${plan.id}, ${t.id})">
+                                        <i class="bi ${t.seleccionado ? 'bi-check-circle' : 'bi-circle'}"></i>
+                                    </button>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarTema(${plan.id}, ${t.id})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>` : ''}
+                        </tr>`;
+                    });
+                    temasHtml += '</tbody></table></div>';
+                }
+            } else {
+                temasHtml = '<p class="text-muted text-center">No hay temas registrados.</p>';
+            }
+            document.getElementById('temasContainer').innerHTML = temasHtml;
+
+            // Observaciones
+            let obsHtml = '';
+            plan.observaciones.forEach(o => {
+                obsHtml += `<div class="border-start border-3 ps-3 mb-2 ${o.tipo === 'APROBACION' ? 'border-success' : o.tipo === 'DEVOLUCION' ? 'border-danger' : 'border-warning'}">
+                    <p class="mb-1">${o.texto}</p>
+                    <small class="text-muted">${o.autor} - ${o.fecha}</small>
+                </div>`;
+            });
+            document.getElementById('observacionesList').innerHTML = obsHtml;
+
+            // Acciones
+            const accionesCard = document.getElementById('accionesCard');
+            if (canAccess('ANALISTA') && ['BORRADOR', 'EN_CORRECCION'].includes(plan.estado)) {
+                accionesCard.style.display = 'block';
+                document.getElementById('btnAgregarTema').onclick = () => mostrarNuevoTema(planId);
+                document.getElementById('btnEnviarRevision').onclick = () => enviarRevision(planId);
+            } else {
+                accionesCard.style.display = 'none';
+            }
+
+            showScreen('detallePlan');
+        }
+
+        function toggleSeleccion(planId, temaId) {
+            const data = getData();
+            const plan = data.planes.find(p => p.id === planId);
+            const tema = plan.temas.find(t => t.id === temaId);
+            tema.seleccionado = !tema.seleccionado;
+            if (tema.seleccionado && !tema.presupuesto_aprobado) {
+                tema.presupuesto_aprobado = tema.presupuesto;
+            }
+            saveData(data);
+            verDetallePlan(planId);
+        }
+
+        function eliminarTema(planId, temaId) {
+            if (!confirm('¿Eliminar este tema?')) return;
+            const data = getData();
+            const plan = data.planes.find(p => p.id === planId);
+            plan.temas = plan.temas.filter(t => t.id !== temaId);
+            saveData(data);
+            verDetallePlan(planId);
+        }
+
+        function enviarRevision(planId) {
+            const data = getData();
+            const plan = data.planes.find(p => p.id === planId);
+            if (!plan.temas.some(t => t.seleccionado)) {
+                alert('Seleccione al menos un tema', 'warning');
+                return;
+            }
+            plan.estado = 'EN_REVISION';
+            plan.observaciones.push({
+                autor: currentUser.nombre, texto: 'Enviado a revisión del Jefe de Personal',
+                tipo: 'OBSERVACION', fecha: new Date().toISOString().split('T')[0]
+            });
+            saveData(data);
+            alert('Plan enviado a revisión', 'success');
+            showScreen('planes');
+        }
+
+        function agregarObservacion() {
+            const texto = document.getElementById('nuevaObservacion').value.trim();
+            if (!texto) return;
+            const data = getData();
+            const plan = data.planes.find(p => p.id === currentPlanId);
+            plan.observaciones.push({
+                autor: currentUser.nombre, texto, tipo: 'OBSERVACION',
+                fecha: new Date().toISOString().split('T')[0]
+            });
+            saveData(data);
+            document.getElementById('nuevaObservacion').value = '';
+            verDetallePlan(currentPlanId);
+        }
+
+        // ================================================
+        // NUEVO TEMA
+        // ================================================
+
+        function mostrarNuevoTema(planId) {
+            currentPlanId = planId;
+            const data = getData();
+            const plan = data.planes.find(p => p.id === planId);
+            document.getElementById('temaBackToPlan').textContent = `Plan ${plan.anio}`;
+
+            // Llenar direcciones
+            let dirOptions = '';
+            DIRECCIONES.forEach(d => {
+                dirOptions += `<option value="${d.id}">${d.nombre} (${d.abreviatura})</option>`;
+            });
+            document.getElementById('temaDireccion').innerHTML = dirOptions;
+
+            showScreen('nuevoTema');
+        }
+
+        function crearTema() {
+            const nombre = document.getElementById('temaNombre').value.trim();
+            const direccion_id = parseInt(document.getElementById('temaDireccion').value);
+            const modalidad = document.getElementById('temaModalidad').value;
+            const etapa = document.getElementById('temaEtapa').value;
+            const subetapa = document.getElementById('temaSubetapa').value;
+            const participantes = parseInt(document.getElementById('temaParticipantes').value);
+            const horas = parseFloat(document.getElementById('temaHoras').value);
+            const presupuesto = parseFloat(document.getElementById('temaPresupuesto').value);
+            const mes = parseInt(document.getElementById('temaMes').value);
+
+            if (!nombre || !participantes || !horas || !presupuesto) {
+                alert('Complete todos los campos', 'warning');
+                return;
+            }
+
+            const data = getData();
+            const plan = data.planes.find(p => p.id === currentPlanId);
+
+            // Agregar tema
+            plan.temas.push({
+                id: data.nextTemaId++,
+                nombre, etapa, subetapa, num_participantes: participantes,
+                modalidad, horas, presupuesto, mes,
+                usuario_id: direccion_id, // Usa dirección como ID de usuario para simplificar
+                seleccionado: true, presupuesto_aprobado: presupuesto
+            });
+            saveData(data);
+            alert('Tema agregado', 'success');
+            verDetallePlan(currentPlanId);
+        }
+
+        // ================================================
+        // NECESIDADES (DIRECTOR)
+        // ================================================
+
+        function updateNecesidadesTable() {
+            const data = getData();
+            const plan = data.planes.find(p => p.estado === 'BORRADOR' || p.estado === 'EN_CORRECCION');
+            if (!plan) {
+                document.getElementById('necesidadesTable').innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay planes activos</td></tr>';
+                return;
+            }
+
+            const misTemas = plan.temas.filter(t => t.usuario_id === currentUser.id);
+            const miDir = DIRECCIONES.find(d => d.id === currentUser.direccion_id);
+            const puedeAgregar = misTemas.length < (miDir?.max_temas || 5);
+
+            document.getElementById('btnNuevaNecesidad').style.display = puedeAgregar && plan.estado === 'BORRADOR' ? 'inline' : 'none';
+            document.getElementById('btnNuevaNecesidad').onclick = () => mostrarNuevaNecesidad(plan.id);
+
+            let html = '';
+            if (misTemas.length === 0) {
+                html = '<tr><td colspan="6" class="text-center text-muted">No ha registrado necesidades</td></tr>';
+            } else {
+                misTemas.forEach(t => {
+                    html += `<tr>
+                        <td><strong>${t.nombre}</strong></td>
+                        <td>${t.modalidad}</td>
+                        <td>${t.horas}h</td>
+                        <td>$${t.presupuesto.toLocaleString('es-EC', {minimumFractionDigits: 2})}</td>
+                        <td>${MESES[t.mes]}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarNecesidad(${plan.id}, ${t.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('necesidadesTable').innerHTML = html;
+        }
+
+        function mostrarNuevaNecesidad(planId) {
+            mostrarNuevoTema(planId);
+        }
+
+        function eliminarNecesidad(planId, temaId) {
+            if (!confirm('¿Eliminar esta necesidad?')) return;
+            const data = getData();
+            const plan = data.planes.find(p => p.id === planId);
+            plan.temas = plan.temas.filter(t => !(t.usuario_id === currentUser.id && t.id === temaId));
+            saveData(data);
+            updateNecesidadesTable();
+        }
+
+        // ================================================
+        // REVISION JEFE
+        // ================================================
+
+        function updateRevisionJefeTable() {
+            const data = getData();
+            const planes = data.planes.filter(p => p.estado === 'EN_REVISION');
+
+            let html = '';
+            if (planes.length === 0) {
+                html = '<tr><td colspan="4" class="text-center text-muted">No hay planes en revisión</td></tr>';
+            } else {
+                planes.forEach(p => {
+                    html += `<tr>
+                        <td><strong>${p.anio}</strong></td>
+                        <td>$${p.monto_referencial.toLocaleString('es-EC', {minimumFractionDigits: 2})}</td>
+                        <td>${p.temas.filter(t => t.seleccionado).length}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-1" onclick="aprobarJefe(${p.id})">
+                                <i class="bi bi-check"></i> Aprobar
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="devolverJefe(${p.id})">
+                                <i class="bi bi-arrow-return-left"></i> Devolver
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('revisionJefeTable').innerHTML = html;
+        }
+
+        function aprobarJefe(planId) {
+            if (!confirm('¿Aprobar este plan?')) return;
+            const data = getData();
+            const plan = data.planes.find(p => p.id === planId);
+            plan.estado = 'EN_APROBACION';
+            plan.observaciones.push({
+                autor: currentUser.nombre, texto: 'Aprobado por Jefe de Personal. Enviado a Director.',
+                tipo: 'APROBACION', fecha: new Date().toISOString().split('T')[0]
+            });
+            saveData(data);
+            alert('Plan aprobado y enviado a Director', 'success');
+            updateRevisionJefeTable();
+        }
+
+        function devolverJefe(planId) {
+            const obs = prompt('Indique las correcciones requeridas:');
+            if (!obs) return;
+            const data = getData();
+            const plan = data.planes.find(p => p.id === planId);
+            plan.estado = 'EN_CORRECCION';
+            plan.observaciones.push({
+                autor: currentUser.nombre, texto: `Devuelto para corrección: ${obs}`,
+                tipo: 'DEVOLUCION', fecha: new Date().toISOString().split('T')[0]
+            });
+            saveData(data);
+            alert('Plan devuelto al Analista', 'warning');
+            updateRevisionJefeTable();
+        }
+
+        // ================================================
+        // REVISION DIRECTOR
+        // ================================================
+
+        function updateRevisionDirectorTable() {
+            const data = getData();
+            const planes = data.planes.filter(p => p.estado === 'EN_APROBACION');
+
+            let html = '';
+            if (planes.length === 0) {
+                html = '<tr><td colspan="4" class="text-center text-muted">No hay planes pendientes de su aprobación</td></tr>';
+            } else {
+                planes.forEach(p => {
+                    html += `<tr>
+                        <td><strong>${p.anio}</strong></td>
+                        <td>$${p.monto_referencial.toLocaleString('es-EC', {minimumFractionDigits: 2})}</td>
+                        <td>${p.temas.filter(t => t.seleccionado).length}</td>
+                        <td>
+                            <button class="btn btn-sm btn-success" onclick="aprobarDirector(${p.id})">
+                                <i class="bi bi-check-all"></i> Enviar a Presidente
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('revisionDirectorTable').innerHTML = html;
+        }
+
+        function aprobarDirector(planId) {
+            if (!confirm('¿Aprobar y enviar al Presidente?')) return;
+            const data = getData();
+            const plan = data.planes.find(p => p.id === planId);
+            plan.observaciones.push({
+                autor: currentUser.nombre, texto: 'Aprobado por Director. Enviado a Presidente.',
+                tipo: 'APROBACION', fecha: new Date().toISOString().split('T')[0]
+            });
+            // El estado ya es EN_APROBACION, así que simplemente se mantiene
+            saveData(data);
+            alert('Plan enviado al Presidente', 'success');
+            showScreen('planes');
+        }
+
+        // ================================================
+        // APROBACION PRESIDENTE
+        // ================================================
+
+        function updateAprobacionPresidenteTable() {
+            const data = getData();
+            const planes = data.planes.filter(p => p.estado === 'EN_APROBACION');
+
+            let html = '';
+            if (planes.length === 0) {
+                html = '<tr><td colspan="5" class="text-center text-muted">No hay planes pendientes de aprobación</td></tr>';
+            } else {
+                planes.forEach(p => {
+                    html += `<tr>
+                        <td><strong>${p.anio}</strong></td>
+                        <td>$${p.monto_referencial.toLocaleString('es-EC', {minimumFractionDigits: 2})}</td>
+                        <td><span class="badge badge-estado estado-${p.estado}">${p.estado.replace('_', ' ')}</span></td>
+                        <td>${p.temas.filter(t => t.seleccionado).length}</td>
+                        <td>
+                            <button class="btn btn-success btn-lg" onclick="aprobarPresidente(${p.id})">
+                                <i class="bi bi-check-circle"></i> Aprobar Definitivamente
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('aprobacionPresidenteTable').innerHTML = html;
+        }
+
+        function aprobarPresidente(planId) {
+            const monto = prompt('Ingrese el monto aprobado (o presione Enter para usar el referencial):', '');
+            if (monto === null) return;
+
+            const montoAprobado = parseFloat(monto) || null;
+            const data = getData();
+            const plan = data.planes.find(p => p.id === planId);
+
+            plan.estado = 'APROBADO';
+            plan.monto_aprobado = montoAprobado || plan.monto_referencial;
+            plan.observaciones.push({
+                autor: currentUser.nombre,
+                texto: `Aprobado definitivamente${montoAprobado ? '. Monto: $' + montoAprobado.toLocaleString('es-EC', {minimumFractionDigits: 2}) : ''}`,
+                tipo: 'APROBACION', fecha: new Date().toISOString().split('T')[0]
+            });
+            saveData(data);
+            alert('Plan aprobado y bloqueado', 'success');
+            updateAprobacionPresidenteTable();
+        }
+
+        // ================================================
+        // EJECUCION
+        // ================================================
+
+        function updateEjecucionTable() {
+            const data = getData();
+
+            let html = '';
+            if (data.ejecuciones.length === 0) {
+                html = '<tr><td colspan="5" class="text-center text-muted">No hay capacitaciones ejecutadas</td></tr>';
+            } else {
+                data.ejecuciones.forEach(e => {
+                    const plan = data.planes.find(p => p.temas.some(t => t.id === e.tema_id));
+                    const tema = plan?.temas.find(t => t.id === e.tema_id);
+                    html += `<tr>
+                        <td><strong>${tema?.nombre || 'N/A'}</strong></td>
+                        <td>${e.fecha_inicio} - ${e.fecha_fin}</td>
+                        <td>${e.empresa}</td>
+                        <td>${e.participantes.length}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="verParticipantes(${e.id})">
+                                <i class="bi bi-people"></i> Ver
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('ejecucionTable').innerHTML = html;
+        }
+
+        function mostrarNuevaEjecucion() {
+            const data = getData();
+            const temasAprobados = [];
+            data.planes.filter(p => p.estado === 'APROBADO').forEach(p => {
+                p.temas.filter(t => t.seleccionado).forEach(t => {
+                    temasAprobados.push({...t, anio: p.anio});
+                });
+            });
+
+            if (temasAprobados.length === 0) {
+                alert('No hay temas en planes aprobados', 'warning');
+                return;
+            }
+
+            let options = '';
+            temasAprobados.forEach(t => {
+                options += `<option value="${t.id}">${t.nombre} - ${t.anio}</option>`;
+            });
+            document.getElementById('ejecTema').innerHTML = options;
+
+            // Set default dates
+            const today = new Date();
+            document.getElementById('ejecFechaInicio').value = today.toISOString().split('T')[0];
+            document.getElementById('ejecFechaFin').value = today.toISOString().split('T')[0];
+
+            showScreen('nuevaEjecucion');
+        }
+
+        function crearEjecucion() {
+            const tema_id = parseInt(document.getElementById('ejecTema').value);
+            const empresa = document.getElementById('ejecEmpresa').value.trim();
+            const fecha_inicio = document.getElementById('ejecFechaInicio').value;
+            const fecha_fin = document.getElementById('ejecFechaFin').value;
+            const horas = parseFloat(document.getElementById('ejecHoras').value);
+            const valor_sin = parseFloat(document.getElementById('ejecValorSin').value);
+            const proceso = document.getElementById('ejecProceso').value.trim();
+            const centro = document.getElementById('ejecCentro').value.trim();
+            const tipo_cert = document.getElementById('ejecTipoCert').value;
+            const obs = document.getElementById('ejecObs').value.trim();
+
+            if (!empresa || !fecha_inicio || !fecha_fin || !horas || !valor_sin || !proceso || !centro) {
+                alert('Complete todos los campos requeridos', 'warning');
+                return;
+            }
+
+            const data = getData();
+            const newEjec = {
+                id: data.nextEjecucionId++,
+                tema_id, empresa, fecha_inicio, fecha_fin, horas,
+                valor_sin_iva: valor_sin, valor_con_iva: valor_sin * 1.12,
+                proceso_contratacion: proceso, centro_costo: centro,
+                tipo_certificacion: tipo_cert, observaciones: obs,
+                participantes: []
+            };
+            data.ejecuciones.push(newEjec);
+            saveData(data);
+
+            currentEjecucionId = newEjec.id;
+            alert('Capacitación creada. Agregue participantes.', 'success');
+            verParticipantes(newEjec.id);
+        }
+
+        function verParticipantes(ejecucionId) {
+            currentEjecucionId = ejecucionId;
+            const data = getData();
+            const ejec = data.ejecuciones.find(e => e.id === ejecucionId);
+            const plan = data.planes.find(p => p.temas.some(t => t.id === ejec.tema_id));
+            const tema = plan?.temas.find(t => t.id === ejec.tema_id);
+
+            document.getElementById('participantesTitulo').innerHTML =
+                `<i class="bi bi-people"></i> Participantes - ${tema?.nombre || 'N/A'}`;
+
+            let html = '';
+            if (ejec.participantes.length === 0) {
+                html = '<tr><td colspan="5" class="text-center text-muted">No hay participantes</td></tr>';
+            } else {
+                ejec.participantes.forEach(p => {
+                    html += `<tr>
+                        <td>${p.codigo}</td>
+                        <td>${p.nombres}</td>
+                        <td>${p.cedula}</td>
+                        <td>${p.cargo}</td>
+                        <td>${p.certificado ? '<span class="badge bg-success"><i class="bi bi-check"></i> Adjunto</span>' : '<span class="badge bg-secondary">Sin adjunto</span>'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarParticipante(${p.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('participantesTable').innerHTML = html;
+            showScreen('participantes');
+        }
+
+        function agregarParticipante() {
+            const codigo = document.getElementById('partCodigo').value.trim();
+            const nombres = document.getElementById('partNombres').value.trim();
+            const cedula = document.getElementById('partCedula').value.trim();
+            const cargo = document.getElementById('partCargo').value.trim();
+
+            if (!codigo || !nombres || !cedula || !cargo) {
+                alert('Complete todos los campos', 'warning');
+                return;
+            }
+
+            const data = getData();
+            const ejec = data.ejecuciones.find(e => e.id === currentEjecucionId);
+            ejec.participantes.push({
+                id: data.nextParticipanteId++,
+                codigo, nombres, cedula, cargo, certificado: false
+            });
+            saveData(data);
+
+            // Limpiar campos
+            document.getElementById('partCodigo').value = '';
+            document.getElementById('partNombres').value = '';
+            document.getElementById('partCedula').value = '';
+            document.getElementById('partCargo').value = '';
+
+            alert('Participante agregado', 'success');
+            verParticipantes(currentEjecucionId);
+        }
+
+        function eliminarParticipante(partId) {
+            if (!confirm('¿Eliminar este participante?')) return;
+            const data = getData();
+            const ejec = data.ejecuciones.find(e => e.id === currentEjecucionId);
+            ejec.participantes = ejec.participantes.filter(p => p.id !== partId);
+            saveData(data);
+            verParticipantes(currentEjecucionId);
+        }
+
+        // ================================================
+        // INITIALIZATION
+        // ================================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeData();
+            populateUserSelect();
+
+            // Event listeners
+            document.getElementById('btnNuevoPlan').addEventListener('click', () => showScreen('nuevoPlan'));
+            document.getElementById('btnNuevaEjecucion').addEventListener('click', mostrarNuevaEjecucion);
+            document.getElementById('btnNuevaNecesidad')?.addEventListener('click', () => {
+                const data = getData();
+                const plan = data.planes.find(p => p.estado === 'BORRADOR' || p.estado === 'EN_CORRECCION');
+                if (plan) mostrarNuevaNecesidad(plan.id);
+            });
+        });
+    </script>
+</body>
+</html>

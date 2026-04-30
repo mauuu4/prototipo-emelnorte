@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Necesidad - SIGEERN{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('necesidades.lista') }}">Necesidades</a></li>
+        <li class="breadcrumb-item active">Nueva</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-plus-circle"></i> Registrar Necesidad
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="etapa_funcional" class="form-label">Etapa Funcional *</label>
+                            <input type="text" class="form-control" id="etapa_funcional" name="etapa_funcional" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="subetapa_funcional" class="form-label">Subetapa Funcional *</label>
+                            <input type="text" class="form-control" id="subetapa_funcional" name="subetapa_funcional" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="num_participantes" class="form-label">Participantes *</label>
+                            <input type="number" class="form-control" id="num_participantes" name="num_participantes" min="1" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="modalidad" class="form-label">Modalidad *</label>
+                            <select class="form-select" id="modalidad" name="modalidad" required>
+                                <option value="PRESENCIAL">Presencial</option>
+                                <option value="VIRTUAL">Virtual</option>
+                                <option value="MIXTO">Mixto</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="horas" class="form-label">Horas *</label>
+                            <input type="number" class="form-control" id="horas" name="horas" step="0.5" min="0.5" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="presupuesto_referencial" class="form-label">Presupuesto *</label>
+                            <input type="number" class="form-control" id="presupuesto_referencial" name="presupuesto_referencial" step="0.01" min="0" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="mes_ejecucion" class="form-label">Mes de Ejecucion *</label>
+                            <select class="form-select" id="mes_ejecucion" name="mes_ejecucion" required>
+                                <option value="1">Enero</option>
+                                <option value="2">Febrero</option>
+                                <option value="3">Marzo</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Mayo</option>
+                                <option value="6">Junio</option>
+                                <option value="7">Julio</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Septiembre</option>
+                                <option value="10">Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Guardar
+                        </button>
+                        <a href="{{ url_for('necesidades.lista') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

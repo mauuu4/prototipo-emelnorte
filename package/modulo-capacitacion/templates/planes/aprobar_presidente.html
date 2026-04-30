@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Aprobar Plan {{ plan.anio }} - SIGEERN{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('revision.lista_presidente') }}">Aprobación</a></li>
+        <li class="breadcrumb-item">Plan {{ plan.anio }}</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-check-all"></i> Aprobación Final del Plan {{ plan.anio }}
+            </div>
+            <div class="card-body">
+                <h4 class="mb-4">Resumen del Plan</h4>
+
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h3 class="mb-0">{{ plan.anio }}</h3>
+                            <small class="text-muted">Año</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h3 class="mb-0 text-primary">${{ "%.2f"|format(plan.monto_referencial) }}</h3>
+                            <small class="text-muted">Monto Referencial</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h3 class="mb-0">{{ plan.get_temas_count() }}</h3>
+                            <small class="text-muted">Temas Seleccionados</small>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h5>Detalles de la Aprobación</h5>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="monto_aprobado" class="form-label">
+                            <strong>Monto Aprobado ($)</strong>
+                        </label>
+                        <input type="number" class="form-control form-control-lg"
+                               id="monto_aprobado" name="monto_aprobado"
+                               value="{{ plan.monto_referencial }}" step="0.01" min="0" required>
+                        <small class="text-muted">
+                            Puede modificar el monto si es diferente al referencial
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="observaciones" class="form-label">
+                            <strong>Observaciones</strong>
+                        </label>
+                        <textarea class="form-control" id="observaciones" name="observaciones"
+                                  rows="4" placeholder="Observaciones adicionales (opcional)"></textarea>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Importante:</strong> Al aprobar el plan, este quedará bloqueado
+                        y no podrá ser modificado.
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle"></i> Aprobar Definitivamente
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-collection"></i> Temas del Plan
+            </div>
+            <div class="card-body">
+                {% for tema in plan.temas.filter_by(estado='ACTIVO') %}
+                {% if tema.tema_seleccionado and tema.tema_seleccionado.seleccionado %}
+                <div class="border-bottom pb-2 mb-2">
+                    <strong>{{ tema.nombre }}</strong>
+                    <br>
+                    <small class="text-muted">
+                        {{ tema.usuario.direccion.abreviatura if tema.usuario and tema.usuario.direccion else '' }}
+                        - ${{ "%.2f"|format(tema.tema_seleccionado.presupuesto_aprobado or tema.presupuesto_referencial) }}
+                    </small>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-chat-left-text"></i> Historial de Observaciones
+            </div>
+            <div class="card-body">
+                {% for obs in plan.observaciones_list.order_by('fecha_creacion') %}
+                <div class="mb-2">
+                    <small class="text-muted">{{ obs.autor }}:</small>
+                    <p class="mb-0">{{ obs.observacion }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

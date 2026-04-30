@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle Ejecucion - SIGEERN{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('ejecucion.lista') }}">Ejecucion</a></li>
+        <li class="breadcrumb-item active">Detalle</li>
+    </ol>
+</nav>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-info-circle"></i> Detalle de Capacitacion Ejecutada
+    </div>
+    <div class="card-body">
+        <p><strong>ID:</strong> {{ capacitacion.id }}</p>
+        <p><strong>Tema:</strong> {{ capacitacion.tema_seleccionado.tema.nombre if capacitacion.tema_seleccionado and capacitacion.tema_seleccionado.tema else '' }}</p>
+        <p><strong>Fechas:</strong> {{ capacitacion.fecha_inicio }} - {{ capacitacion.fecha_fin }}</p>
+        <p><strong>Duracion:</strong> {{ capacitacion.duracion_horas }} horas</p>
+        <p><strong>Valor sin IVA:</strong> ${{ "%.2f"|format(capacitacion.valor_sin_iva) }}</p>
+        <p><strong>Valor con IVA:</strong> ${{ "%.2f"|format(capacitacion.valor_con_iva) }}</p>
+        <p><strong>Centro de costo:</strong> {{ capacitacion.centro_costo }}</p>
+        <p><strong>Proceso:</strong> {{ capacitacion.proceso_contratacion }}</p>
+        <p><strong>Empresa:</strong> {{ capacitacion.empresa_capacitadora }}</p>
+        <p><strong>Tipo de certificacion:</strong> {{ capacitacion.tipo_certificacion }}</p>
+        {% if capacitacion.observaciones %}
+        <p><strong>Observaciones:</strong> {{ capacitacion.observaciones }}</p>
+        {% endif %}
+
+        <a href="{{ url_for('ejecucion.participantes', capacitacion_id=capacitacion.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-people"></i> Ver Participantes
+        </a>
+    </div>
+</div>
+{% endblock %}

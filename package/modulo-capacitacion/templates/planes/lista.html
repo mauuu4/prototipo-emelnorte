@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Planes de Capacitación - SIGEERN{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-calendar-check"></i> Planes de Capacitación</h2>
+    {% if session.usuario_rol == 'ANALISTA' %}
+    <a href="{{ url_for('planes.nuevo') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nuevo Plan
+    </a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if planes %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Año</th>
+                        <th>Monto Referencial</th>
+                        <th>Estado</th>
+                        <th>Temas</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plan in planes %}
+                    <tr>
+                        <td><strong>{{ plan.anio }}</strong></td>
+                        <td>${{ "%.2f"|format(plan.monto_referencial) }}</td>
+                        <td>
+                            <span class="badge badge-estado estado-{{ plan.estado }}">
+                                {{ plan.estado.replace('_', ' ') }}
+                            </span>
+                        </td>
+                        <td>{{ plan.get_temas_count() }}</td>
+                        <td>
+                            <a href="{{ url_for('planes.detalle', plan_id=plan.id) }}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            {% if plan.estado == 'EN_APROBACION' and session.usuario_rol == 'DIRECTOR' %}
+                            <a href="{{ url_for('planes.aprobar_director', plan_id=plan.id) }}"
+                               class="btn btn-sm btn-success">
+                                <i class="bi bi-check"></i> Aprobar
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <p class="text-muted mt-3">No hay planes de capacitación registrados.</p>
+            {% if session.usuario_rol == 'ANALISTA' %}
+            <a href="{{ url_for('planes.nuevo') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Crear Primer Plan
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

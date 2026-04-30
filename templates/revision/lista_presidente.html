@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Aprobacion Presidente - SIGEERN{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-check-circle"></i> Planes para Aprobacion</h2>
+
+<div class="card">
+    <div class="card-body">
+        {% if planes %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Anio</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plan in planes %}
+                    <tr>
+                        <td>{{ plan.anio }}</td>
+                        <td>
+                            <span class="badge badge-estado estado-{{ plan.estado }}">{{ plan.estado.replace('_', ' ') }}</span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('revision.ver_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if plan.estado == 'EN_APROBACION' %}
+                            <a href="{{ url_for('planes.aprobar_presidente', plan_id=plan.id) }}" class="btn btn-sm btn-success">
+                                <i class="bi bi-check"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">No hay planes pendientes.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

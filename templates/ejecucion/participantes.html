@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Participantes - SIGEERN{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('ejecucion.lista') }}">Ejecucion</a></li>
+        <li class="breadcrumb-item active">Participantes</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-person-plus"></i> Agregar Participante
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('ejecucion.agregar_participante', capacitacion_id=capacitacion.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="codigo" class="form-label">Codigo *</label>
+                        <input type="text" class="form-control" id="codigo" name="codigo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nombres" class="form-label">Nombres *</label>
+                        <input type="text" class="form-control" id="nombres" name="nombres" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cedula" class="form-label">Cedula *</label>
+                        <input type="text" class="form-control" id="cedula" name="cedula" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cargo" class="form-label">Cargo *</label>
+                        <input type="text" class="form-control" id="cargo" name="cargo" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Guardar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-people"></i> Lista de Participantes
+            </div>
+            <div class="card-body">
+                {% if capacitacion.participantes.count() > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Codigo</th>
+                                <th>Nombres</th>
+                                <th>Cedula</th>
+                                <th>Cargo</th>
+                                <th>Certificado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in capacitacion.participantes %}
+                            <tr>
+                                <td>{{ p.codigo }}</td>
+                                <td>{{ p.nombres }}</td>
+                                <td>{{ p.cedula }}</td>
+                                <td>{{ p.cargo }}</td>
+                                <td>
+                                    {% if p.ruta_certificado %}
+                                    <a href="{{ url_for('ejecucion.descargar_certificado', participante_id=p.id) }}">Descargar</a>
+                                    {% else %}
+                                    <span class="text-muted">Sin archivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form action="{{ url_for('ejecucion.eliminar_participante', capacitacion_id=capacitacion.id, participante_id=p.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Eliminar participante?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('ejecucion.subir_certificado', capacitacion_id=capacitacion.id, participante_id=p.id) }}" method="POST" enctype="multipart/form-data" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="file" name="archivo" class="form-control form-control-sm" style="width: 200px; display:inline-block;" required>
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-upload"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No hay participantes registrados.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

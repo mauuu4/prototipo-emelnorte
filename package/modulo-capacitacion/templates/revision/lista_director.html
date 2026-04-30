@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Revision Director - SIGEERN{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-clipboard-check"></i> Planes en Aprobacion</h2>
+
+<div class="card">
+    <div class="card-body">
+        {% if planes %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Anio</th>
+                        <th>Direccion</th>
+                        <th>Fecha Envio</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plan in planes %}
+                    <tr>
+                        <td>{{ plan.anio }}</td>
+                        <td>{{ plan.direccion.nombre if plan.direccion else '' }}</td>
+                        <td>{{ plan.fecha_envio_director }}</td>
+                        <td>
+                            <a href="{{ url_for('revision.ver_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <form action="{{ url_for('planes.aprobar_director', plan_id=plan.id) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">No hay planes en aprobacion.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

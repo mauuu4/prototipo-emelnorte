@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión - SIGEERN{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-lg mt-5">
+            <div class="card-header text-center">
+                <h4 class="mb-0">
+                    <i class="bi bi-lightning-charge"></i> EMELNORTE
+                </h4>
+                <p class="mb-0 mt-1"><small>Módulo de Gestión de Capacitación</small></p>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-4">
+                        <label for="usuario_id" class="form-label">
+                            <i class="bi bi-person-badge"></i> Seleccione su usuario:
+                        </label>
+                        <select class="form-select form-select-lg" name="usuario_id" id="usuario_id" required>
+                            <option value="">-- Seleccionar --</option>
+                            {% for usuario in usuarios %}
+                            <option value="{{ usuario.id }}">
+                                {{ usuario.nombre }} ({{ usuario.rol }})
+                                {% if usuario.direccion %}- {{ usuario.direccion.abreviatura }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-box-arrow-in-right"></i> Ingresar al Sistema
+                        </button>
+                    </div>
+                </form>
+
+                <hr class="my-4">
+
+                <div class="text-center">
+                    <p class="text-muted mb-2">
+                        <small>Este es un prototipo de prueba</small>
+                    </p>
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <span class="badge bg-secondary">ANALISTA</span>
+                        <span class="badge bg-secondary">DIRECTOR</span>
+                        <span class="badge bg-secondary">JEFE_PERSONAL</span>
+                        <span class="badge bg-secondary">PRESIDENTE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
