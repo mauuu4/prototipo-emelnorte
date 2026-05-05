@@ -6,7 +6,7 @@ Rutas de Ejecución de Capacitaciones
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, send_from_directory, current_app
 from models import (
     PlanCapacitacion, TemaCapacitacion, TemaSeleccionado,
-    CapacitacionEjecutada, Participante, Direccion
+    CapacitacionEjecutada, Participante, Direccion, Empleado
 )
 from routes.auth import login_required, get_usuario_actual, rol_required
 from config import db
@@ -17,14 +17,59 @@ import os
 ejecucion_bp = Blueprint('ejecucion', __name__, url_prefix='/ejecucion')
 
 
+@ejecucion_bp.route('/api/empleados')
+@rol_required('ANALISTA')
+def api_empleados():
+    """API para buscar empleados por código (autocompletado)"""
+    from flask import jsonify
+    q = request.args.get('q', '').strip().upper()
+    empleados = Empleado.query.filter(
+        Empleado.estado == 'ACTIVO',
+        Empleado.codigo.ilike(f'%{q}%')
+    ).limit(10).all()
+    return jsonify([e.to_dict() for e in empleados])
+
+
+@ejecucion_bp.route('/api/empleado/<codigo>')
+@rol_required('ANALISTA')
+def api_empleado_detalle(codigo):
+    """Retorna datos de un empleado por código exacto"""
+    from flask import jsonify
+    e = Empleado.query.filter_by(codigo=codigo.upper(), estado='ACTIVO').first()
+    if not e:
+        return jsonify(None), 404
+    return jsonify(e.to_dict())
+
+
 @ejecucion_bp.route('/')
 @rol_required('ANALISTA')
 def lista():
-    """Lista de capacitaciones ejecutadas"""
-    capacitaciones = CapacitacionEjecutada.query.order_by(
-        CapacitacionEjecutada.fecha_creacion.desc()
-    ).all()
-    return render_template('ejecucion/lista.html', capacitaciones=capacitaciones)
+    """Dashboard de Ejecución de Capacitaciones"""
+    # Obtener planes aprobados para el filtro de años
+    planes_aprobados = PlanCapacitacion.query.filter_by(estado='APROBADO').order_by(PlanCapacitacion.anio.desc()).all()
+    
+    if not planes_aprobados:
+        return render_template('ejecucion/lista.html', temas=[], anio_actual=None, planes=[])
+        
+    # Determinar el año seleccionado (por defecto el más reciente)
+    anio_seleccionado = request.args.get('anio', type=int)
+    if not anio_seleccionado:
+        anio_seleccionado = planes_aprobados[0].anio
+        
+    plan_actual = next((p for p in planes_aprobados if p.anio == anio_seleccionado), planes_aprobados[0])
+    
+    # Obtener todos los temas seleccionados de este plan
+    temas_seleccionados = TemaSeleccionado.query.filter_by(
+        plan_id=plan_actual.id, 
+        seleccionado=True
+    ).join(TemaCapacitacion).order_by(TemaCapacitacion.nombre).all()
+    
+    return render_template(
+        'ejecucion/lista.html', 
+        temas=temas_seleccionados, 
+        anio_actual=anio_seleccionado, 
+        planes=planes_aprobados
+    )
 
 
 @ejecucion_bp.route('/nuevo', methods=['GET', 'POST'])
@@ -50,6 +95,7 @@ def nuevo():
         empresa_capacitadora = request.form.get('empresa_capacitadora')
         tipo_certificacion = request.form.get('tipo_certificacion')
         observaciones = request.form.get('observaciones')
+        participantes_data = request.form.get('participantes_json') # JSON con los participantes
 
         # Obtener datos del tema
         tema = ts.tema
@@ -71,18 +117,43 @@ def nuevo():
             estado='ACTIVO'
         )
         db.session.add(capacitacion)
+        db.session.flush() # Para obtener capacitacion.id
+
+        # Insertar participantes
+        import json
+        if participantes_data:
+            try:
+                lista_participantes = json.loads(participantes_data)
+                for p in lista_participantes:
+                    # Validar que no exista para esta capacitacion (aunque es nueva, por seguridad)
+                    participante = Participante(
+                        codigo=p.get('codigo'),
+                        nombres=p.get('nombres'),
+                        cedula=p.get('cedula'),
+                        cargo=p.get('cargo'),
+                        capacitacion_id=capacitacion.id,
+                        estado='ACTIVO'
+                    )
+                    db.session.add(participante)
+            except Exception as e:
+                db.session.rollback()
+                flash('Error al procesar los participantes. Verifica los datos.', 'danger')
+                return redirect(url_for('ejecucion.nuevo'))
+
         db.session.commit()
 
-        flash('Capacitación ejecutada registrada. Ahora puede agregar participantes.', 'success')
-        return redirect(url_for('ejecucion.participantes', capacitacion_id=capacitacion.id))
+        flash('Capacitación ejecutada y participantes registrados exitosamente.', 'success')
+        return redirect(url_for('ejecucion.lista'))
 
     # Obtener temas de planes aprobados
     temas_seleccionados = TemaSeleccionado.query.join(PlanCapacitacion).filter(
         PlanCapacitacion.estado == 'APROBADO',
         TemaSeleccionado.seleccionado == True
     ).all()
+    
+    tema_preseleccionado_id = request.args.get('tema_id', type=int)
 
-    return render_template('ejecucion/nuevo.html', temas_seleccionados=temas_seleccionados)
+    return render_template('ejecucion/nuevo.html', temas_seleccionados=temas_seleccionados, tema_preseleccionado_id=tema_preseleccionado_id)
 
 
 @ejecucion_bp.route('/<int:capacitacion_id>')

@@ -24,10 +24,9 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///emelnorte_capacitacion.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
     app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'png', 'jpg', 'jpeg'}
 
-    # Crear carpeta de uploads si no existe
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
     # Inicializar extensiones
@@ -38,14 +37,14 @@ def create_app():
     from routes.auth import auth_bp
     from routes.planes import planes_bp
     from routes.necesidades import necesidades_bp
-    from routes.ejecucion import ejecucion_bp
     from routes.revision import revision_bp
+    from routes.ejecucion import ejecucion_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(planes_bp)
     app.register_blueprint(necesidades_bp)
-    app.register_blueprint(ejecucion_bp)
     app.register_blueprint(revision_bp)
+    app.register_blueprint(ejecucion_bp)
 
     # Crear tablas y datos iniciales
     with app.app_context():

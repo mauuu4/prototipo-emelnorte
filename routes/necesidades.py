@@ -1,6 +1,6 @@
 """
 EMELNORTE - SIGEERN
-Rutas de Necesidades de Capacitación (Directores)
+Rutas de Necesidades de Capacitación - Solo para DIRECTOR de área (RN-02, RN-03)
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
@@ -11,159 +11,173 @@ from datetime import datetime
 
 necesidades_bp = Blueprint('necesidades', __name__, url_prefix='/necesidades')
 
+ETAPAS_FUNCIONALES = [
+    'etapa 1',
+    'etapa 2',
+]
+
+SUBETAPAS_FUNCIONALES = [
+    'subetapa 1',
+    'subetapa 2',
+]
+
+MESES = [
+    (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+    (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+    (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+]
+
+
+def get_plan_vigente():
+    """Obtiene el plan del año actual"""
+    anio_actual = datetime.now().year
+    return PlanCapacitacion.query.filter_by(anio=anio_actual).first()
+
 
 @necesidades_bp.route('/')
-@rol_required('ANALISTA', 'DIRECTOR')
+@rol_required('DIRECTOR')
 def lista():
-    """Lista de necesidades registradas"""
+    """RN-02, RN-03: Lista de necesidades del director de área"""
     usuario = get_usuario_actual()
 
-    # Obtener plan vigente
-    anio_actual = datetime.now().year
-    plan = PlanCapacitacion.query.filter_by(anio=anio_actual).first()
+    # Solo directores de área (no el Director de TH que tiene otra función)
+    if usuario.es_director_th():
+        flash('Como Director de Talento Humano, su función es revisar el Plan de Capacitación, no registrar necesidades.', 'info')
+        return redirect(url_for('revision.lista_director'))
 
+    plan = get_plan_vigente()
     if not plan:
-        flash('No existe un plan de capacitación para el año vigente. Contacte al Analista.', 'warning')
+        flash('No existe un Plan de Capacitación para el año vigente. Espere la notificación del Analista de Talento Humano.', 'warning')
         return redirect(url_for('auth.dashboard'))
 
-    if usuario.es_director():
-        # Director ve solo sus temas
-        temas = TemaCapacitacion.query.filter_by(
-            usuario_id=usuario.id,
-            plan_id=plan.id,
-            estado='ACTIVO'
-        ).all()
+    # Solo puede agregar si el plan está en BORRADOR
+    puede_agregar_estado = plan.estado == 'BORRADOR'
 
-        # Verificar límite de temas
-        max_temas = usuario.direccion.max_temas if usuario.direccion else 5
-        puede_agregar = len(temas) < max_temas
-    else:
-        # Analista ve todos los temas
-        temas = plan.temas.filter(TemaCapacitacion.estado == 'ACTIVO').all()
-        puede_agregar = False  # El analista agrega desde el detalle del plan
+    temas = TemaCapacitacion.query.filter_by(
+        usuario_id=usuario.id,
+        plan_id=plan.id,
+        estado='ACTIVO'
+    ).order_by(TemaCapacitacion.fecha_creacion).all()
+
+    max_temas = usuario.direccion.max_temas if usuario.direccion else 5
+    puede_agregar = puede_agregar_estado and len(temas) < max_temas
 
     return render_template('necesidades/lista.html',
                            temas=temas,
                            plan=plan,
                            puede_agregar=puede_agregar,
-                           usuario=usuario)
+                           puede_agregar_estado=puede_agregar_estado,
+                           max_temas=max_temas,
+                           usuario=usuario,
+                           etapas=ETAPAS_FUNCIONALES,
+                           subetapas=SUBETAPAS_FUNCIONALES,
+                           meses=MESES)
 
 
-@necesidades_bp.route('/nuevo', methods=['GET', 'POST'])
+@necesidades_bp.route('/nuevo', methods=['POST'])
 @rol_required('DIRECTOR')
 def nuevo():
-    """Registrar una nueva necesidad de capacitación"""
+    """RN-02: Registrar una nueva necesidad de capacitación (desde modal)"""
     usuario = get_usuario_actual()
 
-    # Verificar que existe plan vigente
-    anio_actual = datetime.now().year
-    plan = PlanCapacitacion.query.filter_by(anio=anio_actual).first()
+    if usuario.es_director_th():
+        flash('No tiene permisos para registrar necesidades.', 'danger')
+        return redirect(url_for('auth.dashboard'))
 
+    plan = get_plan_vigente()
     if not plan:
-        flash('No existe un plan de capacitación para el año vigente.', 'warning')
+        flash('No existe un plan vigente.', 'warning')
         return redirect(url_for('necesidades.lista'))
 
-    # Verificar que el plan está en estado válido para agregar temas
-    if plan.estado not in ['BORRADOR', 'EN_CORRECCION']:
-        flash('El plan de capacitación no acepta nuevos temas en este momento.', 'warning')
+    if plan.estado != 'BORRADOR':
+        flash('El plan de capacitación ya no acepta nuevas necesidades.', 'warning')
         return redirect(url_for('necesidades.lista'))
 
-    # Verificar límite de temas
+    # RN-03: Verificar límite de temas
     temas_actuales = TemaCapacitacion.query.filter_by(
-        usuario_id=usuario.id,
-        plan_id=plan.id,
-        estado='ACTIVO'
+        usuario_id=usuario.id, plan_id=plan.id, estado='ACTIVO'
     ).count()
-
     max_temas = usuario.direccion.max_temas if usuario.direccion else 5
 
     if temas_actuales >= max_temas:
         flash(f'Ha alcanzado el límite de {max_temas} temas para su dirección.', 'warning')
         return redirect(url_for('necesidades.lista'))
 
-    if request.method == 'POST':
-        nombre = request.form.get('nombre')
-        etapa_funcional = request.form.get('etapa_funcional')
-        subetapa_funcional = request.form.get('subetapa_funcional')
-        num_participantes = request.form.get('num_participantes', type=int)
-        modalidad = request.form.get('modalidad')
-        horas = request.form.get('horas', type=float)
-        presupuesto_referencial = request.form.get('presupuesto_referencial', type=float)
-        mes_ejecucion = request.form.get('mes_ejecucion', type=int)
+    nombre = request.form.get('nombre', '').strip()
+    etapa_funcional = request.form.get('etapa_funcional', '').strip()
+    subetapa_funcional = request.form.get('subetapa_funcional', '').strip()
+    num_participantes = request.form.get('num_participantes', type=int)
+    modalidad = request.form.get('modalidad')
+    horas = request.form.get('horas', type=float)
+    presupuesto_referencial = request.form.get('presupuesto_referencial', type=float)
+    mes_ejecucion = request.form.get('mes_ejecucion', type=int)
 
-        # Crear tema
-        tema = TemaCapacitacion(
-            nombre=nombre,
-            etapa_funcional=etapa_funcional,
-            subetapa_funcional=subetapa_funcional,
-            num_participantes=num_participantes,
-            modalidad=modalidad,
-            horas=horas,
-            presupuesto_referencial=presupuesto_referencial,
-            mes_ejecucion=mes_ejecucion,
-            usuario_id=usuario.id,
-            plan_id=plan.id,
-            estado='ACTIVO'
-        )
-        db.session.add(tema)
-        db.session.flush()
-
-        # Crear registro de selección (no seleccionado por defecto)
-        tema_seleccionado = TemaSeleccionado(
-            tema_id=tema.id,
-            plan_id=plan.id,
-            seleccionado=False
-        )
-        db.session.add(tema_seleccionado)
-        db.session.commit()
-
-        flash('Necesidad de capacitación registrada exitosamente.', 'success')
+    if not all([nombre, etapa_funcional, subetapa_funcional, num_participantes, modalidad, horas, presupuesto_referencial, mes_ejecucion]):
+        flash('Todos los campos son obligatorios.', 'danger')
         return redirect(url_for('necesidades.lista'))
 
-    return render_template('necesidades/nuevo.html',
-                           plan=plan,
-                           max_temas=max_temas,
-                           temas_restantes=max_temas - temas_actuales - 1)
+    tema = TemaCapacitacion(
+        nombre=nombre,
+        etapa_funcional=etapa_funcional,
+        subetapa_funcional=subetapa_funcional,
+        num_participantes=num_participantes,
+        modalidad=modalidad,
+        horas=horas,
+        presupuesto_referencial=presupuesto_referencial,
+        mes_ejecucion=mes_ejecucion,
+        usuario_id=usuario.id,
+        plan_id=plan.id,
+        es_del_analista=False,
+        estado='ACTIVO'
+    )
+    db.session.add(tema)
+    db.session.flush()
+
+    ts = TemaSeleccionado(
+        tema_id=tema.id,
+        plan_id=plan.id,
+        seleccionado=False  # El Analista decide si lo selecciona
+    )
+    db.session.add(ts)
+    db.session.commit()
+
+    flash(f'Necesidad "{nombre}" registrada exitosamente.', 'success')
+    return redirect(url_for('necesidades.lista'))
 
 
-@necesidades_bp.route('/<int:tema_id>/editar', methods=['GET', 'POST'])
+@necesidades_bp.route('/<int:tema_id>/editar', methods=['POST'])
 @rol_required('DIRECTOR')
 def editar(tema_id):
-    """Editar una necesidad registrada"""
+    """Editar una necesidad desde modal"""
     tema = TemaCapacitacion.query.get_or_404(tema_id)
     usuario = get_usuario_actual()
 
-    # Verificar que el tema pertenece al usuario
     if tema.usuario_id != usuario.id:
         flash('No tiene permisos para editar este tema.', 'danger')
         return redirect(url_for('necesidades.lista'))
 
-    # Verificar que el plan está en estado válido
-    if tema.plan.estado not in ['BORRADOR', 'EN_CORRECCION']:
+    if tema.plan.estado != 'BORRADOR':
         flash('No se puede editar el tema en este estado del plan.', 'warning')
         return redirect(url_for('necesidades.lista'))
 
-    if request.method == 'POST':
-        tema.nombre = request.form.get('nombre')
-        tema.etapa_funcional = request.form.get('etapa_funcional')
-        tema.subetapa_funcional = request.form.get('subetapa_funcional')
-        tema.num_participantes = request.form.get('num_participantes', type=int)
-        tema.modalidad = request.form.get('modalidad')
-        tema.horas = request.form.get('horas', type=float)
-        tema.presupuesto_referencial = request.form.get('presupuesto_referencial', type=float)
-        tema.mes_ejecucion = request.form.get('mes_ejecucion', type=int)
+    tema.nombre = request.form.get('nombre', tema.nombre).strip()
+    tema.etapa_funcional = request.form.get('etapa_funcional', tema.etapa_funcional)
+    tema.subetapa_funcional = request.form.get('subetapa_funcional', tema.subetapa_funcional)
+    tema.num_participantes = request.form.get('num_participantes', type=int) or tema.num_participantes
+    tema.modalidad = request.form.get('modalidad', tema.modalidad)
+    tema.horas = request.form.get('horas', type=float) or tema.horas
+    tema.presupuesto_referencial = request.form.get('presupuesto_referencial', type=float) or tema.presupuesto_referencial
+    tema.mes_ejecucion = request.form.get('mes_ejecucion', type=int) or tema.mes_ejecucion
 
-        db.session.commit()
-        flash('Necesidad actualizada exitosamente.', 'success')
-        return redirect(url_for('necesidades.lista'))
-
-    return render_template('necesidades/editar.html', tema=tema)
+    db.session.commit()
+    flash('Necesidad actualizada exitosamente.', 'success')
+    return redirect(url_for('necesidades.lista'))
 
 
 @necesidades_bp.route('/<int:tema_id>/eliminar', methods=['POST'])
 @rol_required('DIRECTOR')
 def eliminar(tema_id):
-    """Eliminar una necesidad (marcar como inactiva)"""
+    """Eliminar una necesidad"""
     tema = TemaCapacitacion.query.get_or_404(tema_id)
     usuario = get_usuario_actual()
 
@@ -171,12 +185,11 @@ def eliminar(tema_id):
         flash('No tiene permisos para eliminar este tema.', 'danger')
         return redirect(url_for('necesidades.lista'))
 
-    if tema.plan.estado not in ['BORRADOR', 'EN_CORRECCION']:
+    if tema.plan.estado != 'BORRADOR':
         flash('No se puede eliminar el tema en este estado del plan.', 'warning')
         return redirect(url_for('necesidades.lista'))
 
     tema.estado = 'ELIMINADO'
     db.session.commit()
-
     flash('Necesidad eliminada.', 'success')
     return redirect(url_for('necesidades.lista'))

@@ -1,84 +1,73 @@
 """
 EMELNORTE - SIGEERN
-Rutas de Planes de Capacitación
+Rutas de Planes de Capacitación - Solo para ANALISTA (RN-01, RN-04, RN-05, RN-06)
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash
-from models import PlanCapacitacion, TemaCapacitacion, TemaSeleccionado, Usuario, Direccion
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
+from models import PlanCapacitacion, TemaCapacitacion, TemaSeleccionado, Usuario, Direccion, ObservacionPlan
 from routes.auth import login_required, get_usuario_actual, rol_required
 from config import db
 from datetime import datetime
 
 planes_bp = Blueprint('planes', __name__, url_prefix='/planes')
 
+# ─────────────────────────────────────────────────────────────
+# RN-01: Analista crea el plan (año + monto referencial)
+# ─────────────────────────────────────────────────────────────
 
 @planes_bp.route('/')
-@login_required
+@rol_required('ANALISTA')
 def lista():
-    """Lista de planes de capacitación"""
+    """Lista de planes de capacitación - Solo Analista"""
     usuario = get_usuario_actual()
-
-    # Filtrar según el rol
-    if usuario.es_analista():
-        planes = PlanCapacitacion.query.order_by(PlanCapacitacion.anio.desc()).all()
-    else:
-        # Otros roles solo ven planes en estados específicos
-        planes = PlanCapacitacion.query.filter(
-            PlanCapacitacion.estado.in_(['EN_REVISION', 'EN_APROBACION', 'APROBADO'])
-        ).order_by(PlanCapacitacion.anio.desc()).all()
-
+    planes = PlanCapacitacion.query.order_by(PlanCapacitacion.anio.desc()).all()
     return render_template('planes/lista.html', planes=planes, usuario=usuario)
 
 
-@planes_bp.route('/nuevo', methods=['GET', 'POST'])
+@planes_bp.route('/nuevo', methods=['POST'])
 @rol_required('ANALISTA')
 def nuevo():
-    """Crear un nuevo plan de capacitación"""
-    if request.method == 'POST':
-        anio = request.form.get('anio', type=int)
-        monto_referencial = request.form.get('monto_referencial', type=float)
+    """Crear un nuevo plan (desde modal)"""
+    anio = request.form.get('anio', type=int)
+    monto_referencial = request.form.get('monto_referencial', type=float)
 
-        if not anio or not monto_referencial:
-            flash('Todos los campos son obligatorios.', 'danger')
-            return redirect(url_for('planes.nuevo'))
+    if not anio or not monto_referencial:
+        flash('Todos los campos son obligatorios.', 'danger')
+        return redirect(url_for('planes.lista'))
 
-        # Verificar que no exista un plan para ese año
-        plan_existente = PlanCapacitacion.query.filter_by(anio=anio).first()
-        if plan_existente:
-            flash(f'Ya existe un plan de capacitación para el año {anio}.', 'warning')
-            return redirect(url_for('planes.lista'))
+    plan_existente = PlanCapacitacion.query.filter_by(anio=anio).first()
+    if plan_existente:
+        flash(f'Ya existe un Plan de Capacitación para el año {anio}.', 'warning')
+        return redirect(url_for('planes.lista'))
 
-        # Crear el plan
-        # Buscar la dirección de Talento Humano
-        direccion_th = Direccion.query.filter_by(nombre='Talento Humano').first()
+    usuario = get_usuario_actual()
+    plan = PlanCapacitacion(
+        anio=anio,
+        monto_referencial=monto_referencial,
+        estado='BORRADOR',
+        creado_por_id=usuario.id,
+        fecha_creacion=datetime.utcnow()
+    )
+    db.session.add(plan)
+    db.session.commit()
 
-        plan = PlanCapacitacion(
-            anio=anio,
-            monto_referencial=monto_referencial,
-            estado='BORRADOR',
-            direccion_id=direccion_th.id if direccion_th else 1,
-            fecha_creacion=datetime.utcnow()
-        )
-        db.session.add(plan)
-        db.session.commit()
+    flash(f'Plan de Capacitación {anio} creado exitosamente. Los directores serán notificados por correo para registrar sus necesidades.', 'success')
+    return redirect(url_for('planes.detalle', plan_id=plan.id))
 
-        flash(f'Plan de capacitación {anio} creado exitosamente.', 'success')
-        return redirect(url_for('planes.detalle', plan_id=plan.id))
 
-    anio_actual = datetime.now().year
-    return render_template('planes/nuevo.html', anio_actual=anio_actual)
-
+# ─────────────────────────────────────────────────────────────
+# RN-04: Analista visualiza y gestiona el plan
+# ─────────────────────────────────────────────────────────────
 
 @planes_bp.route('/<int:plan_id>')
-@login_required
+@rol_required('ANALISTA')
 def detalle(plan_id):
-    """Detalle de un plan de capacitación"""
+    """Detalle completo del plan para el Analista (RN-04, RN-05)"""
     plan = PlanCapacitacion.query.get_or_404(plan_id)
     usuario = get_usuario_actual()
 
-    # Obtener temas agrupados por dirección
     temas_por_direccion = {}
-    for tema in plan.temas.filter(TemaCapacitacion.estado == 'ACTIVO'):
+    for tema in plan.temas.filter(TemaCapacitacion.estado == 'ACTIVO').order_by(TemaCapacitacion.fecha_creacion):
         if tema.usuario and tema.usuario.direccion:
             dir_nombre = tema.usuario.direccion.nombre
             if dir_nombre not in temas_por_direccion:
@@ -89,12 +78,10 @@ def detalle(plan_id):
                 }
             temas_por_direccion[dir_nombre]['temas'].append(tema)
 
-    # Obtener observaciones
-    observaciones = plan.observaciones_list.order_by(db.desc('fecha_creacion')).all()
-
-    # Calcular totales
+    observaciones = plan.observaciones_list.order_by(ObservacionPlan.fecha_creacion.desc()).all()
     total_seleccionado = plan.get_total_seleccionado()
-    supera_presupuesto = total_seleccionado > plan.monto_referencial
+    supera_presupuesto = total_seleccionado > plan.monto_referencial if plan.monto_referencial else False
+    direcciones = Direccion.query.filter_by(estado='ACTIVO').order_by(Direccion.nombre).all()
 
     return render_template('planes/detalle.html',
                            plan=plan,
@@ -102,232 +89,254 @@ def detalle(plan_id):
                            observaciones=observaciones,
                            total_seleccionado=total_seleccionado,
                            supera_presupuesto=supera_presupuesto,
-                           usuario=usuario)
+                           usuario=usuario,
+                           direcciones=direcciones)
 
 
-@planes_bp.route('/<int:plan_id>/tema/nuevo', methods=['GET', 'POST'])
+@planes_bp.route('/<int:plan_id>/actualizar-presupuesto-aprobado', methods=['POST'])
+@rol_required('ANALISTA')
+def actualizar_presupuesto_aprobado(plan_id):
+    """RN-04: Registrar el valor del presupuesto referencial aprobado del plan"""
+    plan = PlanCapacitacion.query.get_or_404(plan_id)
+    if not plan.is_editable():
+        flash('El plan no puede modificarse en su estado actual.', 'warning')
+        return redirect(url_for('planes.detalle', plan_id=plan_id))
+
+    monto = request.form.get('monto_aprobado', type=float)
+    if monto is not None:
+        plan.monto_aprobado = monto
+        db.session.commit()
+        flash('Presupuesto aprobado actualizado.', 'success')
+    return redirect(url_for('planes.detalle', plan_id=plan_id))
+
+
+# ─────────────────────────────────────────────────────────────
+# RN-04: Agregar temas adicionales (solo Analista)
+# ─────────────────────────────────────────────────────────────
+
+@planes_bp.route('/<int:plan_id>/tema/nuevo', methods=['POST'])
 @rol_required('ANALISTA')
 def nuevo_tema(plan_id):
-    """Agregar un tema manualmente al plan (Analista)"""
+    """Agregar un tema adicional al plan desde modal"""
     plan = PlanCapacitacion.query.get_or_404(plan_id)
-
-    if plan.estado not in ['BORRADOR', 'EN_CORRECCION']:
-        flash('No se pueden agregar temas a un plan que no está en borrador o corrección.', 'warning')
+    if not plan.is_editable():
+        flash('No se pueden agregar temas en el estado actual del plan.', 'warning')
         return redirect(url_for('planes.detalle', plan_id=plan_id))
 
-    if request.method == 'POST':
-        nombre = request.form.get('nombre')
-        etapa_funcional = request.form.get('etapa_funcional')
-        subetapa_funcional = request.form.get('subetapa_funcional')
-        num_participantes = request.form.get('num_participantes', type=int)
-        modalidad = request.form.get('modalidad')
-        horas = request.form.get('horas', type=float)
-        presupuesto_referencial = request.form.get('presupuesto_referencial', type=float)
-        mes_ejecucion = request.form.get('mes_ejecucion', type=int)
-        direccion_id = request.form.get('direccion_id', type=int)
+    usuario = get_usuario_actual()
+    nombre = request.form.get('nombre', '').strip()
+    etapa_funcional = request.form.get('etapa_funcional', '').strip()
+    subetapa_funcional = request.form.get('subetapa_funcional', '').strip()
+    num_participantes = request.form.get('num_participantes', type=int)
+    modalidad = request.form.get('modalidad')
+    horas = request.form.get('horas', type=float)
+    presupuesto_referencial = request.form.get('presupuesto_referencial', type=float)
+    mes_ejecucion = request.form.get('mes_ejecucion', type=int)
+    direccion_id = request.form.get('direccion_id', type=int)
 
-        # Crear tema
-        tema = TemaCapacitacion(
-            nombre=nombre,
-            etapa_funcional=etapa_funcional,
-            subetapa_funcional=subetapa_funcional,
-            num_participantes=num_participantes,
-            modalidad=modalidad,
-            horas=horas,
-            presupuesto_referencial=presupuesto_referencial,
-            mes_ejecucion=mes_ejecucion,
-            usuario_id=session['usuario_id'],  # Será el analista
-            plan_id=plan_id,
-            estado='ACTIVO'
-        )
-        db.session.add(tema)
-        db.session.flush()  # Para obtener el ID
-
-        # Crear registro de selección
-        tema_seleccionado = TemaSeleccionado(
-            tema_id=tema.id,
-            plan_id=plan_id,
-            seleccionado=True,  # Por defecto seleccionado
-            presupuesto_aprobado=presupuesto_referencial
-        )
-        db.session.add(tema_seleccionado)
-        db.session.commit()
-
-        flash('Tema agregado exitosamente.', 'success')
+    if not all([nombre, etapa_funcional, subetapa_funcional, num_participantes, modalidad, horas, presupuesto_referencial, mes_ejecucion]):
+        flash('Todos los campos son obligatorios.', 'danger')
         return redirect(url_for('planes.detalle', plan_id=plan_id))
 
-    # Obtener direcciones para el selector
-    direcciones = Direccion.query.filter_by(estado='ACTIVO').all()
-    return render_template('planes/tema_nuevo.html', plan=plan, direcciones=direcciones)
+    # Buscar un usuario de la direccion seleccionada para asociar el tema,
+    # o usar el analista actual con direccion_id explicitamente
+    usuario_asociado_id = usuario.id
+    if direccion_id:
+        from models import Usuario as U
+        usr_dir = U.query.filter_by(direccion_id=direccion_id, rol='DIRECTOR').first()
+        if usr_dir:
+            usuario_asociado_id = usr_dir.id
+
+    tema = TemaCapacitacion(
+        nombre=nombre,
+        etapa_funcional=etapa_funcional,
+        subetapa_funcional=subetapa_funcional,
+        num_participantes=num_participantes,
+        modalidad=modalidad,
+        horas=horas,
+        presupuesto_referencial=presupuesto_referencial,
+        mes_ejecucion=mes_ejecucion,
+        usuario_id=usuario_asociado_id,
+        plan_id=plan_id,
+        es_del_analista=True,
+        estado='ACTIVO'
+    )
+    db.session.add(tema)
+    db.session.flush()
+
+    ts = TemaSeleccionado(
+        tema_id=tema.id,
+        plan_id=plan_id,
+        seleccionado=True,
+        presupuesto_aprobado=presupuesto_referencial
+    )
+    db.session.add(ts)
+    db.session.commit()
+
+    flash(f'Tema "{nombre}" agregado exitosamente.', 'success')
+    return redirect(url_for('planes.detalle', plan_id=plan_id))
 
 
-@planes_bp.route('/<int:plan_id>/tema/<int:tema_id>/seleccionar', methods=['POST'])
+
+# ─────────────────────────────────────────────────────────────
+# RN-04: Seleccionar / Descartar temas
+# ─────────────────────────────────────────────────────────────
+
+@planes_bp.route('/<int:plan_id>/tema/<int:tema_id>/toggle', methods=['POST'])
 @rol_required('ANALISTA')
-def seleccionar_tema(plan_id, tema_id):
-    """Seleccionar o deseleccionar un tema"""
+def toggle_tema(plan_id, tema_id):
+    """RN-04: Seleccionar o descartar un tema"""
     plan = PlanCapacitacion.query.get_or_404(plan_id)
-
-    if plan.estado not in ['BORRADOR', 'EN_CORRECCION']:
-        flash('No se pueden modificar temas en este estado.', 'warning')
+    if not plan.is_editable():
+        flash('No se pueden modificar temas en el estado actual.', 'warning')
         return redirect(url_for('planes.detalle', plan_id=plan_id))
 
-    tema = TemaCapacitacion.query.get_or_404(tema_id)
     ts = TemaSeleccionado.query.filter_by(tema_id=tema_id, plan_id=plan_id).first()
-
     if ts:
         ts.seleccionado = not ts.seleccionado
+        if ts.seleccionado and not ts.presupuesto_aprobado:
+            tema = TemaCapacitacion.query.get(tema_id)
+            ts.presupuesto_aprobado = tema.presupuesto_referencial if tema else 0
         db.session.commit()
-        estado = 'seleccionado' if ts.seleccionado else 'deseleccionado'
+        estado = 'seleccionado' if ts.seleccionado else 'descartado'
         flash(f'Tema {estado}.', 'success')
-
     return redirect(url_for('planes.detalle', plan_id=plan_id))
 
 
 @planes_bp.route('/<int:plan_id>/tema/<int:tema_id>/presupuesto', methods=['POST'])
 @rol_required('ANALISTA')
-def actualizar_presupuesto(plan_id, tema_id):
-    """Actualizar el presupuesto aprobado de un tema"""
+def actualizar_presupuesto_tema(plan_id, tema_id):
+    """RN-04: Actualizar presupuesto aprobado de un tema"""
     plan = PlanCapacitacion.query.get_or_404(plan_id)
-
-    if plan.estado not in ['BORRADOR', 'EN_CORRECCION']:
-        flash('No se pueden modificar temas en este estado.', 'warning')
+    if not plan.is_editable():
+        flash('No se pueden modificar temas en el estado actual.', 'warning')
         return redirect(url_for('planes.detalle', plan_id=plan_id))
 
     presupuesto = request.form.get('presupuesto_aprobado', type=float)
     ts = TemaSeleccionado.query.filter_by(tema_id=tema_id, plan_id=plan_id).first()
-
-    if ts:
+    if ts and presupuesto is not None:
         ts.presupuesto_aprobado = presupuesto
         db.session.commit()
-        flash('Presupuesto actualizado.', 'success')
-
     return redirect(url_for('planes.detalle', plan_id=plan_id))
 
 
 @planes_bp.route('/<int:plan_id>/tema/<int:tema_id>/eliminar', methods=['POST'])
 @rol_required('ANALISTA')
 def eliminar_tema(plan_id, tema_id):
-    """Eliminar un tema (marcado como inactivo)"""
+    """RN-04: Eliminar un tema (solo temas agregados por el Analista)"""
     plan = PlanCapacitacion.query.get_or_404(plan_id)
-
-    if plan.estado not in ['BORRADOR', 'EN_CORRECCION']:
-        flash('No se pueden eliminar temas en este estado.', 'warning')
+    if not plan.is_editable():
+        flash('No se pueden eliminar temas en el estado actual.', 'warning')
         return redirect(url_for('planes.detalle', plan_id=plan_id))
 
     tema = TemaCapacitacion.query.get_or_404(tema_id)
     tema.estado = 'ELIMINADO'
     db.session.commit()
-
     flash('Tema eliminado.', 'success')
     return redirect(url_for('planes.detalle', plan_id=plan_id))
 
 
-@planes_bp.route('/<int:plan_id>/observacion', methods=['POST'])
-@login_required
-def agregar_observacion(plan_id):
-    """Agregar una observación al plan"""
-    plan = PlanCapacitacion.query.get_or_404(plan_id)
-    observacion_texto = request.form.get('observacion')
-    tipo = request.form.get('tipo_observacion', 'OBSERVACION')
-
-    if observacion_texto:
-        from models import ObservacionPlan
-        obs = ObservacionPlan(
-            observacion=observacion_texto,
-            autor=session['usuario_nombre'],
-            tipo_observacion=tipo,
-            plan_id=plan_id
-        )
-        db.session.add(obs)
-        db.session.commit()
-        flash('Observación agregada.', 'success')
-
-    return redirect(url_for('planes.detalle', plan_id=plan_id))
-
+# ─────────────────────────────────────────────────────────────
+# RN-06: Analista envía plan a revisión del Jefe de Personal
+# ─────────────────────────────────────────────────────────────
 
 @planes_bp.route('/<int:plan_id>/enviar-revision', methods=['POST'])
 @rol_required('ANALISTA')
 def enviar_revision(plan_id):
-    """Enviar plan a revisión del Jefe de Personal"""
+    """RN-06: Enviar plan a revisión → estado EN_REVISION"""
     plan = PlanCapacitacion.query.get_or_404(plan_id)
-
     if plan.estado not in ['BORRADOR', 'EN_CORRECCION']:
-        flash('No se puede enviar este plan a revisión.', 'warning')
+        flash('No se puede enviar este plan a revisión en su estado actual.', 'warning')
         return redirect(url_for('planes.detalle', plan_id=plan_id))
 
-    # Verificar que haya al menos un tema seleccionado
-    temas_seleccionados = TemaSeleccionado.query.filter_by(plan_id=plan_id, seleccionado=True).count()
-    if temas_seleccionados == 0:
+    temas_sel = TemaSeleccionado.query.filter_by(plan_id=plan_id, seleccionado=True).count()
+    if temas_sel == 0:
         flash('Debe seleccionar al menos un tema antes de enviar a revisión.', 'warning')
         return redirect(url_for('planes.detalle', plan_id=plan_id))
 
     plan.estado = 'EN_REVISION'
     plan.fecha_envio_jefe = datetime.utcnow()
     db.session.commit()
-
-    flash('Plan enviado a revisión del Jefe de Personal.', 'success')
+    flash('Plan enviado al Jefe de Personal para revisión. El estado cambió a "En Revisión".', 'success')
     return redirect(url_for('planes.detalle', plan_id=plan_id))
 
 
-@planes_bp.route('/<int:plan_id>/aprobar-jefe', methods=['POST'])
-@rol_required('JEFE_PERSONAL')
-def aprobar_jefe(plan_id):
-    """Aprobar plan y enviar al Director"""
-    plan = PlanCapacitacion.query.get_or_404(plan_id)
+# ─────────────────────────────────────────────────────────────
+# RN-07: Jefe de Personal aprueba o devuelve el plan
+# ─────────────────────────────────────────────────────────────
 
+@planes_bp.route('/<int:plan_id>/accion-jefe', methods=['POST'])
+@rol_required('JEFE_PERSONAL')
+def accion_jefe(plan_id):
+    """RN-07: Jefe aprueba (envía a Director TH) o devuelve al Analista"""
+    plan = PlanCapacitacion.query.get_or_404(plan_id)
     if plan.estado != 'EN_REVISION':
-        flash('Este plan no está en revisión.', 'warning')
+        flash('Este plan no está en estado de revisión.', 'warning')
         return redirect(url_for('revision.lista_jefe'))
 
     action = request.form.get('action')
+    observacion_texto = request.form.get('observacion', '').strip()
 
     if action == 'aprobar':
         plan.estado = 'EN_APROBACION'
         plan.fecha_envio_director = datetime.utcnow()
+        obs_tipo = 'APROBACION'
+        obs_texto = f'Plan aprobado por Jefe de Personal. Enviado al Director de Talento Humano. {observacion_texto}'.strip()
+        flash('Plan aprobado y enviado al Director de Talento Humano.', 'success')
 
-        # Agregar observación de aprobación
-        from models import ObservacionPlan
+    elif action == 'devolver':
+        if not observacion_texto:
+            flash('Debe indicar el motivo de la devolución.', 'danger')
+            return redirect(url_for('revision.ver_plan', plan_id=plan_id))
+        plan.estado = 'EN_CORRECCION'
+        obs_tipo = 'DEVOLUCION'
+        obs_texto = f'Plan devuelto para corrección: {observacion_texto}'
+        flash('Plan devuelto al Analista de Talento Humano para correcciones.', 'warning')
+
+    elif action == 'observacion':
+        if not observacion_texto:
+            flash('Ingrese el texto de la observación.', 'danger')
+            return redirect(url_for('revision.ver_plan', plan_id=plan_id))
+        obs_tipo = 'OBSERVACION'
+        obs_texto = observacion_texto
+
+    if action in ['aprobar', 'devolver', 'observacion']:
         obs = ObservacionPlan(
-            observacion='Aprobado por Jefe de Personal. Enviado a Director.',
+            observacion=obs_texto,
             autor=session['usuario_nombre'],
-            tipo_observacion='APROBACION',
+            tipo_observacion=obs_tipo,
             plan_id=plan_id
         )
         db.session.add(obs)
-        flash('Plan aprobado y enviado a Director para revisión.', 'success')
+        db.session.commit()
 
-    elif action == 'devolver':
-        plan.estado = 'EN_CORRECCION'
-        observacion_texto = request.form.get('observacion_devolucion', '')
-        if observacion_texto:
-            from models import ObservacionPlan
-            obs = ObservacionPlan(
-                observacion=f'Devuelto para corrección: {observacion_texto}',
-                autor=session['usuario_nombre'],
-                tipo_observacion='DEVOLUCION',
-                plan_id=plan_id
-            )
-            db.session.add(obs)
-        flash('Plan devuelto al Analista para corrección.', 'warning')
+    if action == 'observacion':
+        flash('Observación agregada.', 'success')
+        return redirect(url_for('revision.ver_plan', plan_id=plan_id))
 
-    db.session.commit()
     return redirect(url_for('revision.lista_jefe'))
 
 
-@planes_bp.route('/<int:plan_id>/aprobar-director', methods=['POST'])
-@rol_required('DIRECTOR')
-def aprobar_director(plan_id):
-    """Enviar plan al Presidente para aprobación final"""
-    plan = PlanCapacitacion.query.get_or_404(plan_id)
+# ─────────────────────────────────────────────────────────────
+# RN-08: Director TH revisa y envía al Presidente
+# ─────────────────────────────────────────────────────────────
 
+@planes_bp.route('/<int:plan_id>/enviar-presidente', methods=['POST'])
+@rol_required('DIRECTOR')
+def enviar_presidente(plan_id):
+    """RN-08: Director TH envía plan al Presidente para aprobación final"""
+    usuario = get_usuario_actual()
+    if not usuario.es_director_th():
+        flash('No tiene permisos para realizar esta acción.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
+    plan = PlanCapacitacion.query.get_or_404(plan_id)
     if plan.estado != 'EN_APROBACION':
-        flash('Este plan no está en espera de aprobación del Director.', 'warning')
+        flash('El plan no está en estado de aprobación por el Director.', 'warning')
         return redirect(url_for('revision.lista_director'))
 
-    # Agregar observación
-    from models import ObservacionPlan
     obs = ObservacionPlan(
-        observacion='Aprobado por Director. Enviado a Presidente para aprobación final.',
+        observacion='Plan revisado por Director de Talento Humano. Enviado al Presidente para aprobación final.',
         autor=session['usuario_nombre'],
         tipo_observacion='APROBACION',
         plan_id=plan_id
@@ -335,37 +344,39 @@ def aprobar_director(plan_id):
     db.session.add(obs)
     db.session.commit()
 
-    flash('Plan enviado al Presidente para aprobación final.', 'success')
+    flash('Plan enviado al Presidente Ejecutivo para aprobación final.', 'success')
     return redirect(url_for('revision.lista_director'))
 
 
-@planes_bp.route('/<int:plan_id>/aprobar-presidente', methods=['GET', 'POST'])
+# ─────────────────────────────────────────────────────────────
+# RN-09: Presidente aprueba definitivamente
+# ─────────────────────────────────────────────────────────────
+
+@planes_bp.route('/<int:plan_id>/aprobar-final', methods=['POST'])
 @rol_required('PRESIDENTE')
-def aprobar_presidente(plan_id):
-    """Aprobación final por el Presidente"""
+def aprobar_final(plan_id):
+    """RN-09: Aprobación final del plan - queda bloqueado permanentemente"""
     plan = PlanCapacitacion.query.get_or_404(plan_id)
-
-    if request.method == 'POST':
-        monto_aprobado = request.form.get('monto_aprobado', type=float, default=plan.monto_referencial)
-        observaciones = request.form.get('observaciones', '')
-
-        plan.estado = 'APROBADO'
-        plan.monto_aprobado = monto_aprobado
-        plan.observaciones = observaciones
-        plan.fecha_aprobacion = datetime.utcnow()
-
-        # Agregar observación
-        from models import ObservacionPlan
-        obs = ObservacionPlan(
-            observacion=f'Aprobado definitivamente. Monto aprobado: ${monto_aprobado:,.2f}. {observaciones}',
-            autor=session['usuario_nombre'],
-            tipo_observacion='APROBACION',
-            plan_id=plan_id
-        )
-        db.session.add(obs)
-        db.session.commit()
-
-        flash('Plan de Capacitación aprobado definitivamente y bloqueado.', 'success')
+    if plan.estado != 'EN_APROBACION':
+        flash('El plan no está en estado de aprobación final.', 'warning')
         return redirect(url_for('revision.lista_presidente'))
 
-    return render_template('planes/aprobar_presidente.html', plan=plan)
+    monto_aprobado = plan.monto_aprobado or plan.monto_referencial
+
+    plan.estado = 'APROBADO'
+    plan.monto_aprobado = monto_aprobado
+    plan.fecha_aprobacion = datetime.utcnow()
+
+    obs_texto = f'Plan Anual de Capacitación {plan.anio} APROBADO definitivamente. Monto aprobado: ${monto_aprobado:,.2f}.'
+
+    obs = ObservacionPlan(
+        observacion=obs_texto,
+        autor=session['usuario_nombre'],
+        tipo_observacion='APROBACION',
+        plan_id=plan_id
+    )
+    db.session.add(obs)
+    db.session.commit()
+
+    flash(f'¡Plan Anual de Capacitación {plan.anio} aprobado definitivamente! El plan quedó bloqueado en modo solo lectura.', 'success')
+    return redirect(url_for('revision.lista_presidente'))

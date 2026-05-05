@@ -56,18 +56,6 @@ class Direccion(db.Model):
     def __repr__(self):
         return f'<Direccion {self.nombre}>'
 
-    def puede_agregar_tema(self, plan_id):
-        """Verifica si la dirección puede agregar más temas a un plan"""
-        from models import TemaCapacitacion
-        temas_actuales = TemaCapacitacion.query.filter_by(
-            usuario_id=None  # Se filtrará por dirección del usuario
-        ).join(Usuario).filter(
-            Usuario.direccion_id == self.id,
-            TemaCapacitacion.plan_id == plan_id,
-            TemaCapacitacion.estado == 'ACTIVO'
-        ).count()
-        return temas_actuales < self.max_temas
-
 
 class Usuario(db.Model):
     """Modelo para Usuarios del sistema"""
@@ -94,6 +82,14 @@ class Usuario(db.Model):
     def es_director(self):
         return self.rol == 'DIRECTOR'
 
+    def es_director_th(self):
+        """Director de Talento Humano (revisor antes del presidente)"""
+        return self.rol == 'DIRECTOR' and self.direccion_id == 6
+
+    def es_director_area(self):
+        """Director de area (registra necesidades de capacitacion)"""
+        return self.rol == 'DIRECTOR' and self.direccion_id != 6
+
     def es_jefe_personal(self):
         return self.rol == 'JEFE_PERSONAL'
 
@@ -102,23 +98,22 @@ class Usuario(db.Model):
 
 
 class PlanCapacitacion(db.Model):
-    """Modelo para Planes de Capacitación"""
+    """Modelo para Planes de Capacitación - UN SOLO PLAN POR AÑO (global)"""
     __tablename__ = 'planes_capacitacion'
 
     id = db.Column(db.Integer, primary_key=True)
-    anio = db.Column(db.Integer, nullable=False)
+    anio = db.Column(db.Integer, nullable=False, unique=True)
     monto_referencial = db.Column(db.Float, nullable=False)
     monto_aprobado = db.Column(db.Float, nullable=True)
     estado = db.Column(db.String(30), nullable=False, default='BORRADOR')
-    observaciones = db.Column(db.Text, nullable=True)
-    direccion_id = db.Column(db.Integer, db.ForeignKey('direcciones.id'), nullable=False)
+    creado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
     fecha_envio_jefe = db.Column(db.DateTime, nullable=True)
     fecha_envio_director = db.Column(db.DateTime, nullable=True)
     fecha_aprobacion = db.Column(db.DateTime, nullable=True)
 
     # Relaciones
-    direccion = db.relationship('Direccion', backref=db.backref('planes', lazy='dynamic'))
+    creado_por = db.relationship('Usuario', backref='planes_creados')
     temas = db.relationship('TemaCapacitacion', backref='plan', lazy='dynamic', cascade='all, delete-orphan')
     temas_seleccionados = db.relationship('TemaSeleccionado', backref='plan', lazy='dynamic', cascade='all, delete-orphan')
     observaciones_list = db.relationship('ObservacionPlan', backref='plan', lazy='dynamic', cascade='all, delete-orphan')
@@ -130,28 +125,40 @@ class PlanCapacitacion(db.Model):
         """Cuenta los temas activos del plan"""
         return self.temas.filter(TemaCapacitacion.estado == 'ACTIVO').count()
 
+    def get_temas_seleccionados_count(self):
+        """Cuenta los temas seleccionados"""
+        return TemaSeleccionado.query.filter_by(plan_id=self.id, seleccionado=True).count()
+
     def get_total_seleccionado(self):
         """Calcula el total del presupuesto de temas seleccionados"""
         total = 0
-        for ts in self.temas_seleccionados:
-            if ts.seleccionado and ts.presupuesto_aprobado:
+        for ts in self.temas_seleccionados.filter_by(seleccionado=True):
+            if ts.presupuesto_aprobado:
                 total += ts.presupuesto_aprobado
         return total
 
     def supera_presupuesto(self):
         """Verifica si el total seleccionado supera el presupuesto referencial"""
+        if not self.monto_referencial:
+            return False
         return self.get_total_seleccionado() > self.monto_referencial
 
     def get_temas_por_direccion(self):
-        """Agrupa temas por dirección"""
+        """Agrupa temas activos por dirección"""
         from collections import defaultdict
         temas_por_dir = defaultdict(list)
-
         for tema in self.temas.filter(TemaCapacitacion.estado == 'ACTIVO'):
             if tema.usuario and tema.usuario.direccion:
                 temas_por_dir[tema.usuario.direccion].append(tema)
-
         return dict(temas_por_dir)
+
+    def is_editable(self):
+        """El plan solo es editable en estados BORRADOR o EN_CORRECCION"""
+        return self.estado in ['BORRADOR', 'EN_CORRECCION']
+
+    def is_blocked(self):
+        """El plan está bloqueado si está APROBADO"""
+        return self.estado == 'APROBADO'
 
 
 class TemaCapacitacion(db.Model):
@@ -169,6 +176,7 @@ class TemaCapacitacion(db.Model):
     mes_ejecucion = db.Column(db.Integer, nullable=False)  # 1-12
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     plan_id = db.Column(db.Integer, db.ForeignKey('planes_capacitacion.id'), nullable=False)
+    es_del_analista = db.Column(db.Boolean, default=False)  # True si fue agregado por el Analista
     estado = db.Column(db.String(20), nullable=False, default='ACTIVO')
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -183,6 +191,12 @@ class TemaCapacitacion(db.Model):
         meses = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
         return meses[self.mes_ejecucion] if 1 <= self.mes_ejecucion <= 12 else ''
+
+    def get_direccion_nombre(self):
+        """Retorna nombre de la dirección del usuario que registró el tema"""
+        if self.usuario and self.usuario.direccion:
+            return self.usuario.direccion.nombre
+        return 'Sin Dirección'
 
 
 class TemaSeleccionado(db.Model):
@@ -200,57 +214,6 @@ class TemaSeleccionado(db.Model):
         return f'<TemaSeleccionado tema={self.tema_id} seleccionado={self.seleccionado}>'
 
 
-class CapacitacionEjecutada(db.Model):
-    """Modelo para Capacitaciones Ejecutadas"""
-    __tablename__ = 'capacitaciones_ejecutadas'
-
-    id = db.Column(db.Integer, primary_key=True)
-    tema_seleccionado_id = db.Column(db.Integer, db.ForeignKey('temas_seleccionados.id'), nullable=False)
-    fecha_inicio = db.Column(db.Date, nullable=False)
-    fecha_fin = db.Column(db.Date, nullable=False)
-    duracion_horas = db.Column(db.Float, nullable=False)
-    valor_sin_iva = db.Column(db.Float, nullable=False)
-    valor_con_iva = db.Column(db.Float, nullable=False)
-    proceso_contratacion = db.Column(db.String(100), nullable=False)
-    centro_costo = db.Column(db.String(50), nullable=False)
-    etapa_funcional = db.Column(db.String(100), nullable=False)
-    subetapa_funcional = db.Column(db.String(100), nullable=False)
-    empresa_capacitadora = db.Column(db.String(200), nullable=False)
-    tipo_certificacion = db.Column(db.String(50), nullable=False)
-    observaciones = db.Column(db.Text, nullable=True)
-    estado = db.Column(db.String(20), nullable=False, default='ACTIVO')
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relaciones
-    tema_seleccionado = db.relationship('TemaSeleccionado', backref='capacitaciones')
-    participantes = db.relationship('Participante', backref='capacitacion', lazy='dynamic', cascade='all, delete-orphan')
-
-    def __repr__(self):
-        return f'<CapacitacionEjecutada {self.id}>'
-
-    def get_total_participantes(self):
-        """Cuenta los participantes activos"""
-        return self.participantes.filter(Participante.estado == 'ACTIVO').count()
-
-
-class Participante(db.Model):
-    """Modelo para Participantes de una capacitación"""
-    __tablename__ = 'participantes'
-
-    id = db.Column(db.Integer, primary_key=True)
-    codigo = db.Column(db.String(20), nullable=False)
-    nombres = db.Column(db.String(100), nullable=False)
-    cedula = db.Column(db.String(10), nullable=False)
-    cargo = db.Column(db.String(100), nullable=False)
-    ruta_certificado = db.Column(db.String(500), nullable=True)
-    capacitacion_id = db.Column(db.Integer, db.ForeignKey('capacitaciones_ejecutadas.id'), nullable=False)
-    estado = db.Column(db.String(20), nullable=False, default='ACTIVO')
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def __repr__(self):
-        return f'<Participante {self.nombres}>'
-
-
 class ObservacionPlan(db.Model):
     """Modelo para Observaciones de un plan"""
     __tablename__ = 'observaciones_plan'
@@ -266,5 +229,82 @@ class ObservacionPlan(db.Model):
         return f'<ObservacionPlan {self.tipo_observacion} por {self.autor}>'
 
 
-# Importar después de definir las clases para evitar importación circular
-from models import Usuario, TemaCapacitacion, Participante
+class Empleado(db.Model):
+    """Modelo para Empleados de EMELNORTE (nómina para búsqueda en participantes)"""
+    __tablename__ = 'empleados'
+
+    id = db.Column(db.Integer, primary_key=True)
+    codigo = db.Column(db.String(20), nullable=False, unique=True)
+    nombres = db.Column(db.String(150), nullable=False)
+    cedula = db.Column(db.String(15), nullable=False, unique=True)
+    cargo = db.Column(db.String(150), nullable=True)
+    direccion = db.Column(db.String(100), nullable=True)
+    estado = db.Column(db.String(20), nullable=False, default='ACTIVO')
+
+    def __repr__(self):
+        return f'<Empleado {self.codigo} - {self.nombres}>'
+
+    def to_dict(self):
+        return {
+            'codigo': self.codigo,
+            'nombres': self.nombres,
+            'cedula': self.cedula,
+            'cargo': self.cargo or '',
+            'direccion': self.direccion or ''
+        }
+
+
+class CapacitacionEjecutada(db.Model):
+    """Modelo para Capacitaciones Ejecutadas (Etapa de Ejecución)"""
+    __tablename__ = 'capacitaciones_ejecutadas'
+
+    id = db.Column(db.Integer, primary_key=True)
+    tema_seleccionado_id = db.Column(db.Integer, db.ForeignKey('temas_seleccionados.id'), nullable=False)
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=False)
+    duracion_horas = db.Column(db.Float, nullable=False)
+    valor_sin_iva = db.Column(db.Float, nullable=False)
+    valor_con_iva = db.Column(db.Float, nullable=False)
+    proceso_contratacion = db.Column(db.String(100), nullable=True)
+    centro_costo = db.Column(db.String(100), nullable=True)
+    etapa_funcional = db.Column(db.String(100), nullable=True)
+    subetapa_funcional = db.Column(db.String(100), nullable=True)
+    empresa_capacitadora = db.Column(db.String(200), nullable=True)
+    tipo_certificacion = db.Column(db.String(100), nullable=True)
+    observaciones = db.Column(db.Text, nullable=True)
+    estado = db.Column(db.String(20), nullable=False, default='ACTIVO')
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relaciones
+    tema_seleccionado = db.relationship('TemaSeleccionado', backref='capacitacion_ejecutada')
+    participantes = db.relationship('Participante', backref='capacitacion', lazy='dynamic',
+                                    cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<CapacitacionEjecutada id={self.id}>'
+
+    def get_participantes_activos(self):
+        return self.participantes.filter_by(estado='ACTIVO').all()
+
+    def get_nombre_tema(self):
+        if self.tema_seleccionado and self.tema_seleccionado.tema:
+            return self.tema_seleccionado.tema.nombre
+        return 'Sin tema'
+
+
+class Participante(db.Model):
+    """Modelo para Participantes de una Capacitación Ejecutada"""
+    __tablename__ = 'participantes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    capacitacion_id = db.Column(db.Integer, db.ForeignKey('capacitaciones_ejecutadas.id'), nullable=False)
+    codigo = db.Column(db.String(20), nullable=False)
+    nombres = db.Column(db.String(150), nullable=False)
+    cedula = db.Column(db.String(15), nullable=False)
+    cargo = db.Column(db.String(150), nullable=True)
+    ruta_certificado = db.Column(db.String(300), nullable=True)
+    estado = db.Column(db.String(20), nullable=False, default='ACTIVO')
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Participante {self.nombres}>'

@@ -1,95 +1,485 @@
 {% extends "base.html" %}
+{% block title %}Registrar Ejecución - SIGEERN{% endblock %}
 
-{% block title %}Nueva Ejecucion - SIGEERN{% endblock %}
+{% block extra_css %}
+<style>
+.wizard-bar { display:flex; align-items:center; margin-bottom:2rem; }
+.wizard-step { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; position:relative; }
+.wizard-step:not(:last-child)::after { content:''; position:absolute; top:18px; left:60%; width:80%; height:2px; background:#e2e8f0; z-index:0; }
+.wizard-step.active:not(:last-child)::after, .wizard-step.done:not(:last-child)::after { background:var(--primary); }
+.step-circle { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem; border:2px solid #e2e8f0; background:#fff; color:#94a3b8; z-index:1; transition:all .3s; }
+.wizard-step.active .step-circle { border-color:var(--primary); background:var(--primary); color:#fff; box-shadow:0 0 0 4px rgba(99,102,241,.15); }
+.wizard-step.done .step-circle { border-color:var(--primary); background:var(--primary); color:#fff; }
+.step-label { font-size:0.7rem; font-weight:600; color:#94a3b8; text-align:center; line-height:1.2; }
+.wizard-step.active .step-label { color:var(--primary); }
+.wizard-step.done .step-label { color:var(--primary); }
+.wizard-panel { display:none; }
+.wizard-panel.active { display:block; }
+.wizard-nav { display:flex; justify-content:space-between; margin-top:1.5rem; padding-top:1rem; border-top:1px solid #e2e8f0; }
+.section-title { font-size:0.7rem; font-weight:700; color:#94a3b8; letter-spacing:.08em; text-transform:uppercase; margin-bottom:0.75rem; padding-bottom:4px; border-bottom:1px solid #f1f5f9; }
+</style>
+{% endblock %}
 
 {% block content %}
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('ejecucion.lista') }}">Ejecucion</a></li>
-        <li class="breadcrumb-item active">Nueva</li>
-    </ol>
-</nav>
+<div class="breadcrumb-bar">Inicio / <a href="{{ url_for('ejecucion.lista') }}" style="color:var(--primary);">Ejecución</a> / <span>Registrar Capacitación</span></div>
 
-<div class="row justify-content-center">
-    <div class="col-md-10">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-plus-circle"></i> Registrar Capacitacion Ejecutada
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-3">
-                        <label for="tema_seleccionado_id" class="form-label">Tema Seleccionado *</label>
-                        <select class="form-select" id="tema_seleccionado_id" name="tema_seleccionado_id" required>
-                            <option value="">-- Seleccionar --</option>
-                            {% for ts in temas_seleccionados %}
-                            <option value="{{ ts.id }}">
-                                {{ ts.tema.nombre }} ({{ ts.plan.anio }}) - ${{ "%.2f"|format(ts.presupuesto_aprobado or ts.tema.presupuesto_referencial) }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
+<div class="pf-panel">
+  <div class="pf-panel-header" style="text-align:left;">
+    <i class="pi pi-play-circle" style="margin-right:6px;"></i>REGISTRAR EJECUCIÓN DE CAPACITACIÓN
+  </div>
+  <div class="pf-panel-content">
 
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="fecha_inicio" class="form-label">Fecha Inicio *</label>
-                            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="fecha_fin" class="form-label">Fecha Fin *</label>
-                            <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="duracion_horas" class="form-label">Duracion (horas) *</label>
-                            <input type="number" class="form-control" id="duracion_horas" name="duracion_horas" step="0.5" min="0.5" required>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="valor_sin_iva" class="form-label">Valor sin IVA *</label>
-                            <input type="number" class="form-control" id="valor_sin_iva" name="valor_sin_iva" step="0.01" min="0" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="proceso_contratacion" class="form-label">Proceso de Contratacion *</label>
-                            <input type="text" class="form-control" id="proceso_contratacion" name="proceso_contratacion" required>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="centro_costo" class="form-label">Centro de Costo *</label>
-                            <input type="text" class="form-control" id="centro_costo" name="centro_costo" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="empresa_capacitadora" class="form-label">Empresa Capacitadora *</label>
-                            <input type="text" class="form-control" id="empresa_capacitadora" name="empresa_capacitadora" required>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="tipo_certificacion" class="form-label">Tipo de Certificacion *</label>
-                            <input type="text" class="form-control" id="tipo_certificacion" name="tipo_certificacion" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="observaciones" class="form-label">Observaciones</label>
-                            <input type="text" class="form-control" id="observaciones" name="observaciones">
-                        </div>
-                    </div>
-
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save"></i> Guardar
-                        </button>
-                        <a href="{{ url_for('ejecucion.lista') }}" class="btn btn-outline-secondary">
-                            <i class="bi bi-x-circle"></i> Cancelar
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
+    <!-- WIZARD BAR -->
+    <div class="wizard-bar">
+      <div class="wizard-step active" id="ws1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Tema &amp;<br>Fechas</div>
+      </div>
+      <div class="wizard-step" id="ws2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Datos<br>Económicos</div>
+      </div>
+      <div class="wizard-step" id="ws3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Empresa &amp;<br>Certificado</div>
+      </div>
+      <div class="wizard-step" id="ws4">
+        <div class="step-circle">4</div>
+        <div class="step-label">Participantes</div>
+      </div>
+      <div class="wizard-step" id="ws5">
+        <div class="step-circle">5</div>
+        <div class="step-label">Confirmar &amp;<br>Guardar</div>
+      </div>
     </div>
+
+    <form method="POST" action="{{ url_for('ejecucion.nuevo') }}" id="formEjecucion">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="participantes_json" id="participantes_json" value="[]">
+
+      <!-- PASO 1: Tema, Etapa y Fechas -->
+      <div class="wizard-panel active" id="panel1">
+        <div class="section-title">Paso 1 — Selección de tema y fechas de ejecución</div>
+        <div class="pf-field">
+          <label class="pf-label">Tema de Capacitación (Plan Aprobado) <span>*</span></label>
+          <select class="pf-select" name="tema_seleccionado_id" id="tema_seleccionado_id" required>
+            <option value="">-- Seleccionar tema del plan aprobado --</option>
+            {% for ts in temas_seleccionados %}
+            <option value="{{ ts.id }}"
+              data-etapa="{{ ts.tema.etapa_funcional }}"
+              data-subetapa="{{ ts.tema.subetapa_funcional }}"
+              {% if tema_preseleccionado_id == ts.id %}selected{% endif %}>
+              {{ ts.tema.nombre }} ({{ ts.tema.get_nombre_mes() }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <div class="pf-field">
+              <label class="pf-label">Etapa Funcional <span>*</span></label>
+              <select class="pf-select" name="etapa_funcional" id="etapa_funcional" required>
+                <option value="">-- Seleccionar etapa --</option>
+                <option value="Etapa 1">Etapa 1</option>
+                <option value="Etapa 2">Etapa 2</option>
+                <option value="Etapa 3">Etapa 3</option>
+                <option value="Etapa 4">Etapa 4</option>
+                <option value="Etapa 5">Etapa 5</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="pf-field">
+              <label class="pf-label">Subetapa Funcional <span>*</span></label>
+              <select class="pf-select" name="subetapa_funcional" id="subetapa_funcional" required>
+                <option value="">-- Seleccionar subetapa --</option>
+                <option value="Subetapa 1">Subetapa 1</option>
+                <option value="Subetapa 2">Subetapa 2</option>
+                <option value="Subetapa 3">Subetapa 3</option>
+                <option value="Subetapa 4">Subetapa 4</option>
+                <option value="Subetapa 5">Subetapa 5</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-4">
+            <div class="pf-field">
+              <label class="pf-label">Fecha de Inicio <span>*</span></label>
+              <input type="date" class="pf-input" name="fecha_inicio" id="fecha_inicio" required>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="pf-field">
+              <label class="pf-label">Fecha de Fin <span>*</span></label>
+              <input type="date" class="pf-input" name="fecha_fin" id="fecha_fin" required>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="pf-field">
+              <label class="pf-label">Duración (horas) <span>*</span></label>
+              <input type="number" class="pf-input" name="duracion_horas" id="duracion_horas" step="0.5" min="1" required placeholder="Ej: 40">
+            </div>
+          </div>
+        </div>
+        <div class="wizard-nav">
+          <span></span>
+          <button type="button" class="pf-btn pf-btn-primary" onclick="goStep(2)">Siguiente <i class="pi pi-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- PASO 2: Datos Económicos -->
+      <div class="wizard-panel" id="panel2">
+        <div class="section-title">Paso 2 — Datos económicos y contratación</div>
+        <div class="row g-2">
+          <div class="col-md-4">
+            <div class="pf-field">
+              <label class="pf-label">Valor sin IVA ($) <span>*</span></label>
+              <input type="number" class="pf-input" name="valor_sin_iva" id="valor_sin_iva" step="0.01" min="0" required placeholder="0.00" oninput="calcIVA()">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="pf-field">
+              <label class="pf-label">IVA (12%)</label>
+              <input type="text" class="pf-input" id="iva_display" readonly placeholder="0.00" style="background:#f8fafc; color:#64748b;">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="pf-field">
+              <label class="pf-label">Valor con IVA ($)</label>
+              <input type="text" class="pf-input" id="con_iva_display" readonly placeholder="0.00" style="background:#f0fdf4; font-weight:700; color:#16a34a;">
+            </div>
+          </div>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <div class="pf-field">
+              <label class="pf-label">Proceso de Contratación</label>
+              <input type="text" class="pf-input" name="proceso_contratacion" placeholder="Ej: Ínfima cuantía">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="pf-field">
+              <label class="pf-label">Centro de Costo</label>
+              <input type="text" class="pf-input" name="centro_costo" placeholder="Ej: CC-001">
+            </div>
+          </div>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="pf-btn pf-btn-secondary" onclick="goStep(1)"><i class="pi pi-arrow-left"></i> Anterior</button>
+          <button type="button" class="pf-btn pf-btn-primary" onclick="goStep(3)">Siguiente <i class="pi pi-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- PASO 3: Empresa y Certificado -->
+      <div class="wizard-panel" id="panel3">
+        <div class="section-title">Paso 3 — Empresa capacitadora y tipo de certificado</div>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <div class="pf-field">
+              <label class="pf-label">Empresa Capacitadora</label>
+              <select class="pf-select" name="empresa_capacitadora" id="empresa_capacitadora">
+                <option value="">-- Seleccionar empresa --</option>
+                <option value="Empresa 1">Empresa 1</option>
+                <option value="Empresa 2">Empresa 2</option>
+                <option value="Empresa 3">Empresa 3</option>
+                <option value="Empresa 4">Empresa 4</option>
+                <option value="Empresa 5">Empresa 5</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="pf-field">
+              <label class="pf-label">Tipo de Certificado</label>
+              <select class="pf-select" name="tipo_certificacion" id="tipo_certificacion">
+                <option value="">-- Seleccionar certificado --</option>
+                <option value="Certificado 1">Tipo 1</option>
+                <option value="Certificado 2">Tipo 2</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="pf-field">
+          <label class="pf-label">Observaciones</label>
+          <textarea class="pf-input" name="observaciones" rows="3" placeholder="Observaciones adicionales sobre la capacitación..."></textarea>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="pf-btn pf-btn-secondary" onclick="goStep(2)"><i class="pi pi-arrow-left"></i> Anterior</button>
+          <button type="button" class="pf-btn pf-btn-primary" onclick="goStep(4)">Siguiente <i class="pi pi-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- PASO 4: Participantes -->
+      <div class="wizard-panel" id="panel4">
+        <div class="section-title">Paso 4 &mdash; Registro de participantes</div>
+        <div class="pf-infobox" style="margin-bottom:1rem;">
+          <i class="pi pi-info-circle"></i>
+          <div>Busque al empleado por su c&oacute;digo. Al seleccionarlo, se cargan autom&aacute;ticamente su c&eacute;dula, nombres y cargo.</div>
+        </div>
+
+        <!-- Buscador de empleado -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1rem; margin-bottom:1rem;">
+          <div class="section-title" style="margin-bottom:0.75rem;">Buscar y agregar empleado</div>
+          <div class="row g-2">
+            <div class="col-md-3">
+              <div class="pf-field" style="margin-bottom:0; position:relative;">
+                <label class="pf-label">C&oacute;digo de Empleado <span>*</span></label>
+                <input type="text" class="pf-input" id="p_codigo_buscar" placeholder="Ej: EMP-001" autocomplete="off"
+                       oninput="buscarEmpleado(this.value)" style="text-transform:uppercase;">
+                <div id="emp_sugerencias" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:0 0 8px 8px; box-shadow:0 4px 12px rgba(0,0,0,.1); z-index:100; max-height:200px; overflow-y:auto;"></div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="pf-field" style="margin-bottom:0;">
+                <label class="pf-label">C&eacute;dula</label>
+                <input type="text" class="pf-input" id="p_cedula" placeholder="Auto" readonly style="background:#f1f5f9; color:#64748b;">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="pf-field" style="margin-bottom:0;">
+                <label class="pf-label">Nombres Completos</label>
+                <input type="text" class="pf-input" id="p_nombres" placeholder="Auto" readonly style="background:#f1f5f9; color:#64748b;">
+              </div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button type="button" class="pf-btn pf-btn-success" style="width:100%;" onclick="agregarParticipante()">
+                <i class="pi pi-plus"></i> Agregar
+              </button>
+            </div>
+          </div>
+          <div class="pf-field" style="margin-top:0.75rem; margin-bottom:0;">
+            <label class="pf-label">Cargo</label>
+            <input type="text" class="pf-input" id="p_cargo" placeholder="Auto (editable)">
+          </div>
+        </div>
+
+        <!-- Lista temporal de participantes -->
+        <div id="empty-participantes" style="text-align:center; padding:1.5rem; color:#aaa; border:1px dashed #e2e8f0; border-radius:8px;">
+          <i class="pi pi-users" style="font-size:2rem; display:block; margin-bottom:0.5rem;"></i>
+          <p style="font-size:0.85rem;">A&uacute;n no hay participantes agregados.</p>
+        </div>
+        <table class="pf-datatable" id="tabla-participantes" style="display:none;">
+          <thead><tr><th>#</th><th>C&oacute;digo</th><th>Nombres</th><th>C&eacute;dula</th><th>Cargo</th><th style="text-align:center;">Quitar</th></tr></thead>
+          <tbody id="tbody-participantes"></tbody>
+        </table>
+        <div id="count-participantes" style="text-align:right; font-size:0.78rem; color:#888; margin-top:0.5rem; display:none;">
+          Total: <strong id="num-participantes">0</strong> participante(s)
+        </div>
+
+        <div class="wizard-nav">
+          <button type="button" class="pf-btn pf-btn-secondary" onclick="goStep(3)"><i class="pi pi-arrow-left"></i> Anterior</button>
+          <button type="button" class="pf-btn pf-btn-primary" onclick="goStep(5)">Siguiente <i class="pi pi-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- PASO 5: Confirmar y Guardar -->
+      <div class="wizard-panel" id="panel5">
+        <div class="section-title">Paso 5 — Confirmar y guardar registro</div>
+        <div class="pf-infobox" style="margin-bottom:1rem;">
+          <i class="pi pi-check-circle"></i>
+          <div>Revise el resumen antes de guardar. Una vez guardado, puede gestionar los participantes desde la lista de ejecuciones.</div>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1rem; font-size:0.875rem;">
+          <div class="row g-2">
+            <div class="col-md-6"><span class="text-muted-sm">Tema:</span><br><strong id="res_tema">—</strong></div>
+            <div class="col-md-3"><span class="text-muted-sm">Fecha Inicio:</span><br><span id="res_inicio">—</span></div>
+            <div class="col-md-3"><span class="text-muted-sm">Fecha Fin:</span><br><span id="res_fin">—</span></div>
+            <div class="col-md-3"><span class="text-muted-sm">Duración:</span><br><span id="res_horas">—</span></div>
+            <div class="col-md-3"><span class="text-muted-sm">Valor c/ IVA:</span><br><strong id="res_iva" style="color:var(--primary);">—</strong></div>
+            <div class="col-md-3"><span class="text-muted-sm">Empresa:</span><br><span id="res_empresa">—</span></div>
+            <div class="col-md-3"><span class="text-muted-sm">Certificado:</span><br><span id="res_cert">—</span></div>
+            <div class="col-md-3"><span class="text-muted-sm">Etapa:</span><br><span id="res_etapa">—</span></div>
+            <div class="col-md-3"><span class="text-muted-sm">Subetapa:</span><br><span id="res_subetapa">—</span></div>
+            <div class="col-md-6"><span class="text-muted-sm">Participantes:</span><br><strong id="res_partic">0</strong></div>
+          </div>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="pf-btn pf-btn-secondary" onclick="goStep(4)"><i class="pi pi-arrow-left"></i> Anterior</button>
+          <button type="submit" class="pf-btn pf-btn-success">
+            <i class="pi pi-save"></i> Guardar Registro de Ejecución
+          </button>
+        </div>
+      </div>
+
+    </form>
+  </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentStep = 1;
+let participantes = [];
+let empleadoSeleccionado = null;
+let buscarTimer = null;
+
+function goStep(step) {
+  if (step > currentStep && !validarPaso(currentStep)) return;
+  document.getElementById('panel' + currentStep).classList.remove('active');
+  document.getElementById('ws' + currentStep).classList.remove('active');
+  document.getElementById('ws' + currentStep).classList.add('done');
+  if (step < currentStep) {
+    document.getElementById('ws' + currentStep).classList.remove('done');
+  }
+  currentStep = step;
+  document.getElementById('panel' + step).classList.add('active');
+  document.querySelectorAll('.wizard-step').forEach((el, i) => {
+    el.classList.remove('active');
+    if (i + 1 < step) el.classList.add('done');
+    else el.classList.remove('done');
+  });
+  document.getElementById('ws' + step).classList.add('active');
+  if (step === 5) actualizarResumen();
+}
+
+function validarPaso(paso) {
+  if (paso === 1) {
+    const t = document.getElementById('tema_seleccionado_id').value;
+    const fi = document.getElementById('fecha_inicio').value;
+    const ff = document.getElementById('fecha_fin').value;
+    const h = document.getElementById('duracion_horas').value;
+    const e = document.getElementById('etapa_funcional').value;
+    const s = document.getElementById('subetapa_funcional').value;
+    if (!t || !fi || !ff || !h || !e || !s) {
+      alert('Complete todos los campos obligatorios del Paso 1.');
+      return false;
+    }
+  }
+  if (paso === 2) {
+    const v = document.getElementById('valor_sin_iva').value;
+    if (!v || parseFloat(v) < 0) {
+      alert('Ingrese un valor sin IVA válido.');
+      return false;
+    }
+  }
+  return true;
+}
+
+function calcIVA() {
+  const v = parseFloat(document.getElementById('valor_sin_iva').value) || 0;
+  const iva = v * 0.12;
+  const total = v + iva;
+  document.getElementById('iva_display').value = '$' + iva.toFixed(2);
+  document.getElementById('con_iva_display').value = '$' + total.toFixed(2);
+}
+
+/* ── Búsqueda de empleados ── */
+function buscarEmpleado(val) {
+  clearTimeout(buscarTimer);
+  const sug = document.getElementById('emp_sugerencias');
+  if (val.length < 2) { sug.style.display = 'none'; return; }
+  buscarTimer = setTimeout(() => {
+    fetch(`/ejecucion/api/empleados?q=${encodeURIComponent(val)}`)
+      .then(r => r.json())
+      .then(data => {
+        sug.innerHTML = '';
+        if (!data.length) {
+          sug.innerHTML = '<div style="padding:8px 12px; font-size:0.82rem; color:#888;">Sin resultados</div>';
+        } else {
+          data.forEach(emp => {
+            const item = document.createElement('div');
+            item.style.cssText = 'padding:8px 12px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #f1f5f9;';
+            item.innerHTML = `<strong>${emp.codigo}</strong> &mdash; ${emp.nombres} <span style="color:#888; font-size:0.78rem;">${emp.cargo}</span>`;
+            item.onmouseenter = () => item.style.background = '#f0f9ff';
+            item.onmouseleave = () => item.style.background = '';
+            item.onclick = () => seleccionarEmpleado(emp);
+            sug.appendChild(item);
+          });
+        }
+        sug.style.display = 'block';
+      });
+  }, 250);
+}
+
+function seleccionarEmpleado(emp) {
+  empleadoSeleccionado = emp;
+  document.getElementById('p_codigo_buscar').value = emp.codigo;
+  document.getElementById('p_cedula').value = emp.cedula;
+  document.getElementById('p_nombres').value = emp.nombres;
+  document.getElementById('p_cargo').value = emp.cargo;
+  document.getElementById('emp_sugerencias').style.display = 'none';
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#p_codigo_buscar') && !e.target.closest('#emp_sugerencias')) {
+    const sug = document.getElementById('emp_sugerencias');
+    if (sug) sug.style.display = 'none';
+  }
+});
+
+function agregarParticipante() {
+  if (!empleadoSeleccionado) {
+    alert('Busque y seleccione un empleado primero.');
+    return;
+  }
+  const codigo = empleadoSeleccionado.codigo;
+  const cedula = document.getElementById('p_cedula').value.trim();
+  const nombres = document.getElementById('p_nombres').value.trim();
+  const cargo = document.getElementById('p_cargo').value.trim();
+  if (participantes.find(p => p.codigo === codigo)) {
+    alert('Este empleado ya fue agregado.');
+    return;
+  }
+  participantes.push({ codigo, cedula, nombres, cargo });
+  renderParticipantes();
+  empleadoSeleccionado = null;
+  document.getElementById('p_codigo_buscar').value = '';
+  document.getElementById('p_cedula').value = '';
+  document.getElementById('p_nombres').value = '';
+  document.getElementById('p_cargo').value = '';
+  document.getElementById('participantes_json').value = JSON.stringify(participantes);
+}
+
+function quitarParticipante(idx) {
+  participantes.splice(idx, 1);
+  renderParticipantes();
+  document.getElementById('participantes_json').value = JSON.stringify(participantes);
+}
+
+function renderParticipantes() {
+  const tbody = document.getElementById('tbody-participantes');
+  const tabla = document.getElementById('tabla-participantes');
+  const empty = document.getElementById('empty-participantes');
+  const count = document.getElementById('count-participantes');
+  tbody.innerHTML = '';
+  if (participantes.length === 0) {
+    tabla.style.display = 'none';
+    empty.style.display = 'block';
+    count.style.display = 'none';
+  } else {
+    tabla.style.display = 'table';
+    empty.style.display = 'none';
+    count.style.display = 'block';
+    document.getElementById('num-participantes').textContent = participantes.length;
+    participantes.forEach((p, i) => {
+      tbody.innerHTML += `<tr>
+        <td class="text-muted-sm">${i+1}</td>
+        <td><strong>${p.codigo}</strong></td>
+        <td>${p.nombres}</td>
+        <td class="text-muted-sm">${p.cedula}</td>
+        <td style="font-size:0.82rem;">${p.cargo || '—'}</td>
+        <td style="text-align:center;"><button type="button" class="pf-icon-btn pf-icon-btn-delete" onclick="quitarParticipante(${i})"><i class="pi pi-times"></i></button></td>
+      </tr>`;
+    });
+  }
+}
+
+function actualizarResumen() {
+  const temaEl = document.getElementById('tema_seleccionado_id');
+  document.getElementById('res_tema').textContent = temaEl.options[temaEl.selectedIndex]?.text || '—';
+  document.getElementById('res_inicio').textContent = document.getElementById('fecha_inicio').value || '—';
+  document.getElementById('res_fin').textContent = document.getElementById('fecha_fin').value || '—';
+  document.getElementById('res_horas').textContent = (document.getElementById('duracion_horas').value || '—') + 'h';
+  document.getElementById('res_iva').textContent = document.getElementById('con_iva_display').value || '—';
+  const empEl = document.getElementById('empresa_capacitadora');
+  document.getElementById('res_empresa').textContent = empEl.value || '—';
+  const certEl = document.getElementById('tipo_certificacion');
+  document.getElementById('res_cert').textContent = certEl.options[certEl.selectedIndex]?.text || '—';
+  const etapaEl = document.getElementById('etapa_funcional');
+  document.getElementById('res_etapa').textContent = etapaEl.value || '—';
+  const subEl = document.getElementById('subetapa_funcional');
+  document.getElementById('res_subetapa').textContent = subEl.value || '—';
+  document.getElementById('res_partic').textContent = participantes.length;
+}
+</script>
 {% endblock %}

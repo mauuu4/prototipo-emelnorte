@@ -1,39 +1,62 @@
 {% extends "base.html" %}
-
-{% block title %}Revision Director - SIGEERN{% endblock %}
+{% block title %}Revisión del Plan — Director de TH - SIGEERN{% endblock %}
 
 {% block content %}
-<h2 class="mb-4"><i class="bi bi-clipboard-check"></i> Planes en Aprobacion</h2>
+<div class="breadcrumb-bar">Inicio / <span>Revisión del Plan — Director de Talento Humano</span></div>
 
-<div class="card">
-    <div class="card-body">
+<div class="pf-panel">
+    <div class="pf-panel-header" style="text-align: left;">
+        <i class="pi pi-send" style="margin-right: 6px;"></i>
+        REVISIÓN DEL PLAN — DIRECTOR DE TALENTO HUMANO
+    </div>
+    <div class="pf-panel-content">
+        <div class="pf-infobox">
+            <i class="pi pi-info-circle"></i>
+            <div>
+                Revise el Plan Anual de Capacitación aprobado por el Jefe de Personal.
+                Visualice el plan completo con los temas seleccionados, presupuesto y observaciones del Jefe de Personal,
+                luego envíelo al Presidente Ejecutivo para la aprobación final.
+            </div>
+        </div>
+
         {% if planes %}
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="pf-datatable">
                 <thead>
                     <tr>
-                        <th>Anio</th>
-                        <th>Direccion</th>
-                        <th>Fecha Envio</th>
-                        <th>Acciones</th>
+                        <th>Año</th>
+                        <th>Monto Referencial</th>
+                        <th>Total Seleccionado</th>
+                        <th>Temas</th>
+                        <th>Estado</th>
+                        <th>Fecha Aprobación Jefe</th>
+                        <th style="text-align: center; width: 200px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for plan in planes %}
                     <tr>
-                        <td>{{ plan.anio }}</td>
-                        <td>{{ plan.direccion.nombre if plan.direccion else '' }}</td>
-                        <td>{{ plan.fecha_envio_director }}</td>
+                        <td><strong>{{ plan.anio }}</strong></td>
+                        <td>${{ "%.2f"|format(plan.monto_referencial) }}</td>
+                        <td><strong>${{ "%.2f"|format(plan.get_total_seleccionado()) }}</strong></td>
+                        <td>{{ plan.get_temas_seleccionados_count() }}</td>
                         <td>
-                            <a href="{{ url_for('revision.ver_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i>
+                            <span class="estado-badge estado-{{ plan.estado }}">{{ plan.estado.replace('_', ' ') }}</span>
+                        </td>
+                        <td class="text-muted-sm">
+                            {{ plan.fecha_envio_director.strftime('%d/%m/%Y') if plan.fecha_envio_director else '—' }}
+                        </td>
+                        <td style="text-align: center; white-space: nowrap;">
+                            <a href="{{ url_for('revision.ver_plan', plan_id=plan.id) }}"
+                               class="pf-btn pf-btn-outlined" style="padding: 0.3rem 0.7rem; font-size: 0.78rem;">
+                                <i class="pi pi-eye"></i> Ver Plan
                             </a>
-                            <form action="{{ url_for('planes.aprobar_director', plan_id=plan.id) }}" method="POST" style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm btn-success">
-                                    <i class="bi bi-check"></i>
-                                </button>
-                            </form>
+                            {% if plan.estado == 'EN_APROBACION' %}
+                            <button class="pf-btn pf-btn-primary" style="padding: 0.3rem 0.7rem; font-size: 0.78rem;"
+                                    onclick="abrirEnvio({{ plan.id }}, {{ plan.anio }})">
+                                <i class="pi pi-send"></i> Enviar al Presidente
+                            </button>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -41,8 +64,56 @@
             </table>
         </div>
         {% else %}
-        <p class="text-muted">No hay planes en aprobacion.</p>
+        <div style="text-align: center; padding: 3rem; color: #888;">
+            <i class="pi pi-send" style="font-size: 3rem; display: block; margin-bottom: 1rem; color: #ccc;"></i>
+            <p>No hay planes pendientes de envío al Presidente.</p>
+        </div>
         {% endif %}
     </div>
 </div>
+
+<!-- ═══════════════ MODAL: ENVIAR AL PRESIDENTE ═══════════════ -->
+<div class="pf-modal-overlay" id="modalEnviarPresidente" style="display:none;">
+    <div class="pf-modal">
+        <div class="pf-modal-header">
+            <h5><i class="pi pi-send" style="margin-right: 8px;"></i> ENVIAR AL PRESIDENTE EJECUTIVO</h5>
+            <button class="pf-modal-close" onclick="closeModal('modalEnviarPresidente')">×</button>
+        </div>
+        <form method="POST" id="formEnviarPresidente" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="pf-modal-body">
+                <div class="pf-infobox">
+                    <i class="pi pi-info-circle"></i>
+                    <div>
+                        Al confirmar, el Plan <strong id="labelEnvio"></strong> será enviado al
+                        <strong>Presidente Ejecutivo</strong> para la aprobación final (RN-08).
+                    </div>
+                </div>
+                <p style="font-size: 0.875rem; color: #555;">
+                    Confirme que ha revisado el plan completo, los temas seleccionados, el presupuesto
+                    y las observaciones del Jefe de Personal antes de continuar.
+                </p>
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalEnviarPresidente')">
+                    <i class="pi pi-times"></i> Cancelar
+                </button>
+                <button type="submit" class="pf-btn pf-btn-primary">
+                    <i class="pi pi-send"></i> Confirmar Envío
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function abrirEnvio(planId, anio) {
+    document.getElementById('formEnviarPresidente').action = '/planes/' + planId + '/enviar-presidente';
+    document.getElementById('labelEnvio').textContent = 'de Capacitación ' + anio;
+    openModal('modalEnviarPresidente');
+}
+</script>
 {% endblock %}

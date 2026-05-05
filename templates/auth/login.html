@@ -3,53 +3,61 @@
 {% block title %}Iniciar Sesión - SIGEERN{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card shadow-lg mt-5">
-            <div class="card-header text-center">
-                <h4 class="mb-0">
-                    <i class="bi bi-lightning-charge"></i> EMELNORTE
-                </h4>
-                <p class="mb-0 mt-1"><small>Módulo de Gestión de Capacitación</small></p>
+<div style="min-height: 80vh; display: flex; align-items: center; justify-content: center;">
+    <div style="width: 100%; max-width: 500px;">
+
+        <!-- Header Card -->
+        <div style="background: var(--sidebar-bg); border-radius: 6px 6px 0 0; padding: 2rem; text-align: center; color: #fff;">
+            <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                <i class="pi pi-bolt" style="font-size: 1.6rem;"></i>
             </div>
-            <div class="card-body p-4">
-                <form method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-4">
-                        <label for="usuario_id" class="form-label">
-                            <i class="bi bi-person-badge"></i> Seleccione su usuario:
-                        </label>
-                        <select class="form-select form-select-lg" name="usuario_id" id="usuario_id" required>
-                            <option value="">-- Seleccionar --</option>
-                            {% for usuario in usuarios %}
+            <div style="font-size: 1.6rem; font-weight: 800; letter-spacing: 2px;">EMELNORTE</div>
+            <div style="font-size: 0.8rem; opacity: 0.75; margin-top: 4px;">Sistema de Gestión de Capacitación</div>
+        </div>
+
+        <!-- Form Card -->
+        <div style="background: #fff; border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 1.8rem; box-shadow: 0 4px 16px rgba(0,0,0,0.12);">
+
+            <div class="pf-infobox">
+                <i class="pi pi-info-circle"></i>
+                <div>Seleccione su usuario para acceder al sistema. Este es un prototipo de demostración.</div>
+            </div>
+
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="pf-field">
+                    <label class="pf-label" for="usuario_id">
+                        <i class="pi pi-user" style="margin-right: 4px;"></i>
+                        Usuario del Sistema <span>*</span>
+                    </label>
+                    <select class="pf-select" name="usuario_id" id="usuario_id" required>
+                        <option value="">-- Seleccionar usuario --</option>
+                        {% set roles_display = {
+                            'ANALISTA': 'Analista de Talento Humano',
+                            'DIRECTOR': 'Director',
+                            'JEFE_PERSONAL': 'Jefe de Personal',
+                            'PRESIDENTE': 'Presidente Ejecutivo'
+                        } %}
+                        {% for usuario in usuarios %}
                             <option value="{{ usuario.id }}">
-                                {{ usuario.nombre }} ({{ usuario.rol }})
-                                {% if usuario.direccion %}- {{ usuario.direccion.abreviatura }}{% endif %}
+                                {{ usuario.nombre }}
+                                {% if usuario.direccion %} — {{ usuario.direccion.nombre }}{% endif %}
                             </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-box-arrow-in-right"></i> Ingresar al Sistema
-                        </button>
-                    </div>
-                </form>
-
-                <hr class="my-4">
-
-                <div class="text-center">
-                    <p class="text-muted mb-2">
-                        <small>Este es un prototipo de prueba</small>
-                    </p>
-                    <div class="d-flex justify-content-center gap-2 flex-wrap">
-                        <span class="badge bg-secondary">ANALISTA</span>
-                        <span class="badge bg-secondary">DIRECTOR</span>
-                        <span class="badge bg-secondary">JEFE_PERSONAL</span>
-                        <span class="badge bg-secondary">PRESIDENTE</span>
-                    </div>
+                        {% endfor %}
+                    </select>
                 </div>
+
+                <button type="submit" class="pf-btn pf-btn-primary" style="width: 100%; justify-content: center; padding: 0.6rem;">
+                    <i class="pi pi-sign-in"></i> Ingresar al Sistema
+                </button>
+            </form>
+
+            <hr class="divider">
+
+            <div style="font-size: 0.78rem; color: #888; text-align: center;">
+                <strong>Roles disponibles:</strong><br>
+                Analista TH · Directores de Área · Director de TH · Jefe de Personal · Presidente
             </div>
         </div>
     </div>

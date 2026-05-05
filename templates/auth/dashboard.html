@@ -1,276 +1,265 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - SIGEERN{% endblock %}
+{% block title %}Inicio - SIGEERN{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2 class="mb-4">
-            <i class="bi bi-house"></i> Bienvenido, {{ usuario.nombre }}
-            <span class="badge bg-primary">{{ usuario.rol }}</span>
-            {% if usuario.direccion %}
-            <span class="badge bg-secondary">{{ usuario.direccion.nombre }}</span>
-            {% endif %}
-        </h2>
+
+<!-- INFO BANNER -->
+<div class="pf-panel" style="margin-bottom: 1.5rem;">
+    <div class="pf-panel-header" style="text-align: left; display: flex; align-items: center; gap: 8px;">
+        <i class="pi pi-info-circle"></i>
+        SISTEMA INTEGRADO DE GESTIÓN DE EMELNORTE — MÓDULO DE CAPACITACIÓN
+    </div>
+    <div class="pf-panel-content">
+        <div class="pf-infobox" style="margin-bottom: 0;">
+            <i class="pi pi-info-circle"></i>
+            <div>
+                <strong>Estimado/a {{ usuario.nombre }}:</strong> Bienvenido al Módulo de Gestión de Capacitación.
+                {% if usuario.es_analista() %}
+                    Como <strong>Analista de Talento Humano</strong>, usted puede registrar el Plan Anual de Capacitación,
+                    seleccionar los temas propuestos por las Direcciones y enviarlo a revisión.
+                {% elif usuario.es_director_th() %}
+                    Como <strong>Director de Talento Humano</strong>, su función es revisar el Plan Anual de Capacitación
+                    aprobado por el Jefe de Personal y enviarlo al Presidente Ejecutivo para la aprobación final.
+                {% elif usuario.es_director_area() %}
+                    Como <strong>{{ usuario.nombre }}</strong> — {{ usuario.direccion.nombre if usuario.direccion else '' }},
+                    puede registrar las necesidades de capacitación de su dirección para el período vigente.
+                    Su dirección puede registrar hasta <strong>{{ usuario.direccion.max_temas if usuario.direccion else 5 }} temas</strong>.
+                {% elif usuario.es_jefe_personal() %}
+                    Como <strong>Jefe de Personal</strong>, puede revisar el Plan Anual de Capacitación presentado por el
+                    Analista de Talento Humano, agregar observaciones, aprobarlo o devolverlo para corrección.
+                {% elif usuario.es_presidente() %}
+                    Como <strong>Presidente Ejecutivo</strong>, es el único responsable de la aprobación final del
+                    Plan Anual de Capacitación. Una vez aprobado, el plan quedará bloqueado permanentemente.
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
-{# --- ANALISTA --- #}
+{# ═══════════════════════════════════════════════════ #}
+{#                   ANALISTA                          #}
+{# ═══════════════════════════════════════════════════ #}
 {% if usuario.es_analista() %}
-<div class="row g-4 mb-4">
+<div class="row g-3 mb-4">
     <div class="col-md-3">
-        <div class="card card-counter h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-file-earmark-text display-4 text-muted"></i>
-                <h3 class="mt-2 mb-0">{{ planes_borrador }}</h3>
-                <p class="text-muted mb-0">Planes en Borrador</p>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.total_planes }}</div>
+            <div class="stat-label">Planes Totales</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card card-counter h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-hourglass-split display-4 text-warning"></i>
-                <h3 class="mt-2 mb-0">{{ planes_revision }}</h3>
-                <p class="text-muted mb-0">Planes en Revisión</p>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: #6c757d;">{{ stats.planes_borrador }}</div>
+            <div class="stat-label">En Borrador</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card card-counter h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-check-circle display-4 text-success"></i>
-                <h3 class="mt-2 mb-0">{{ planes_aprobados }}</h3>
-                <p class="text-muted mb-0">Planes Aprobados</p>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: #1d4ed8;">{{ stats.planes_revision }}</div>
+            <div class="stat-label">En Revisión</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card card-counter h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-play-circle display-4 text-info"></i>
-                <h3 class="mt-2 mb-0">{{ ejecuciones }}</h3>
-                <p class="text-muted mb-0">Capacitaciones Ejecutadas</p>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: #166534;">{{ stats.planes_aprobados }}</div>
+            <div class="stat-label">Aprobados</div>
         </div>
     </div>
 </div>
 
-<div class="row">
+<div class="row g-3">
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-calendar-plus"></i> Acciones Rápidas
+        <div class="pf-panel">
+            <div class="pf-panel-header">Acciones Rápidas</div>
+            <div class="pf-panel-content" style="display: flex; flex-direction: column; gap: 10px;">
+                <a href="{{ url_for('planes.lista') }}" class="pf-btn pf-btn-primary" style="justify-content: center;">
+                    <i class="pi pi-calendar"></i> Ver Planes de Capacitación
+                </a>
+                {% if stats.plan_activo and stats.plan_activo.is_editable() %}
+                <a href="{{ url_for('planes.detalle', plan_id=stats.plan_activo.id) }}" class="pf-btn pf-btn-outlined" style="justify-content: center;">
+                    <i class="pi pi-eye"></i> Plan Vigente ({{ stats.plan_activo.anio }})
+                </a>
+                {% endif %}
             </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('planes.nuevo') }}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Crear Nuevo Plan
-                    </a>
-                    <a href="{{ url_for('planes.lista') }}" class="btn btn-outline-primary">
-                        <i class="bi bi-list-ul"></i> Ver Todos los Planes
-                    </a>
-                    <a href="{{ url_for('ejecucion.nuevo') }}" class="btn btn-outline-primary">
-                        <i class="bi bi-plus-square"></i> Registrar Capacitación Ejecutada
-                    </a>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="pf-panel">
+            <div class="pf-panel-header">Flujo del Plan</div>
+            <div class="pf-panel-content">
+                <div style="font-size: 0.82rem; color: #555; line-height: 1.8;">
+                    <div>1️⃣ <strong>Crear Plan</strong> → Notificar a Directores</div>
+                    <div>2️⃣ <strong>Seleccionar temas</strong> de las Direcciones</div>
+                    <div>3️⃣ <strong>Enviar a revisión</strong> del Jefe de Personal</div>
+                    <div>4️⃣ Jefe de Personal → Director TH → Presidente</div>
+                    <div>5️⃣ <strong>Plan Aprobado</strong> → Bloqueado</div>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
+{# ═══════════════════════════════════════════════════ #}
+{#              DIRECTOR DE TH                         #}
+{# ═══════════════════════════════════════════════════ #}
+{% elif usuario.es_director_th() %}
+<div class="row g-3 mb-4">
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-info-circle"></i> Información
-            </div>
-            <div class="card-body">
-                <ul class="list-unstyled">
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Puede crear y gestionar planes de capacitación
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Seleccionar y presupuestar temas
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Registrar capacitaciones ejecutadas
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Agregar participantes y certificados
-                    </li>
-                </ul>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: #7b4c00;">{{ stats.planes_pendientes }}</div>
+            <div class="stat-label">Planes Pendientes de Envío</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-value" style="color: #166534;">{{ stats.planes_aprobados }}</div>
+            <div class="stat-label">Planes Aprobados</div>
         </div>
     </div>
 </div>
 
-{# --- DIRECTOR --- #}
-{% elif usuario.es_director() %}
-<div class="row g-4 mb-4">
-    <div class="col-md-4">
-        <div class="card card-counter h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-collection display-4 text-primary"></i>
-                <h3 class="mt-2 mb-0">{{ mis_temas }}</h3>
-                <p class="text-muted mb-0">Mis Temas Registrados</p>
+<div class="pf-panel">
+    <div class="pf-panel-header">Revisión del Plan — Envío al Presidente</div>
+    <div class="pf-panel-content" style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="pf-infobox" style="margin-bottom: 0;">
+            <i class="pi pi-info-circle"></i>
+            <div>
+                Revise el Plan Anual de Capacitación aprobado por el Jefe de Personal.
+                Una vez verificado, envíelo al Presidente Ejecutivo para la aprobación final.
             </div>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card card-counter h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-hourglass-split display-4 text-warning"></i>
-                <h3 class="mt-2 mb-0">{{ planes_revision }}</h3>
-                <p class="text-muted mb-0">Planes en Aprobación</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card card-counter h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-building display-4 text-secondary"></i>
-                <h3 class="mt-2 mb-0">{{ usuario.direccion.max_temas if usuario.direccion else 5 }}</h3>
-                <p class="text-muted mb-0">Temas Permitidos</p>
-            </div>
-        </div>
+        <a href="{{ url_for('revision.lista_director') }}" class="pf-btn pf-btn-primary" style="width: fit-content;">
+            <i class="pi pi-send"></i> Ir a Revisión del Plan
+        </a>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-lightning"></i> Acciones Rápidas
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('necesidades.nuevo') }}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Registrar Nueva Necesidad
-                    </a>
-                    <a href="{{ url_for('necesidades.lista') }}" class="btn btn-outline-primary">
-                        <i class="bi bi-list-ul"></i> Ver Mis Necesidades
-                    </a>
-                </div>
-            </div>
+{# ═══════════════════════════════════════════════════ #}
+{#              DIRECTOR DE ÁREA                        #}
+{# ═══════════════════════════════════════════════════ #}
+{% elif usuario.es_director_area() %}
+<div class="row g-3 mb-4">
+    {% if stats.plan_vigente %}
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-value" style="color: #1d4ed8;">{{ stats.mis_temas }}</div>
+            <div class="stat-label">Temas Registrados</div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-info-circle"></i> Información
-            </div>
-            <div class="card-body">
-                <ul class="list-unstyled">
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Puede registrar necesidades de capacitación
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Límite de {{ usuario.direccion.max_temas if usuario.direccion else 5 }} temas para su dirección
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Puede editar sus temas mientras el plan esté en borrador
-                    </li>
-                </ul>
-            </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-value" style="color: #888;">{{ stats.max_temas }}</div>
+            <div class="stat-label">Máximo Permitido</div>
         </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-value" style="color: {% if stats.temas_restantes > 0 %}#166534{% else %}#dc3545{% endif %};">
+                {{ stats.temas_restantes }}
+            </div>
+            <div class="stat-label">Temas Disponibles</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="pf-panel">
+    <div class="pf-panel-header">Registro de Necesidades de Capacitación</div>
+    <div class="pf-panel-content">
+        {% if stats.plan_vigente %}
+            {% if stats.plan_vigente.estado == 'BORRADOR' %}
+            <div class="pf-infobox">
+                <i class="pi pi-info-circle"></i>
+                <div>El Plan de Capacitación {{ stats.plan_vigente.anio }} está activo y acepta nuevas necesidades.</div>
+            </div>
+            {% else %}
+            <div class="pf-warningbox">
+                <i class="pi pi-exclamation-triangle"></i>
+                <div>El Plan de Capacitación {{ stats.plan_vigente.anio }} ya no acepta nuevas necesidades (estado: <strong>{{ stats.plan_vigente.estado.replace('_', ' ') }}</strong>).</div>
+            </div>
+            {% endif %}
+            <a href="{{ url_for('necesidades.lista') }}" class="pf-btn pf-btn-primary">
+                <i class="pi pi-list"></i> Ver Mis Necesidades
+            </a>
+        {% else %}
+            <div class="pf-warningbox">
+                <i class="pi pi-exclamation-triangle"></i>
+                <div>No existe un Plan de Capacitación activo para el año vigente. Espere la notificación del Analista de Talento Humano.</div>
+            </div>
+        {% endif %}
     </div>
 </div>
 
-{# --- JEFE DE PERSONAL --- #}
+{# ═══════════════════════════════════════════════════ #}
+{#              JEFE DE PERSONAL                        #}
+{# ═══════════════════════════════════════════════════ #}
 {% elif usuario.es_jefe_personal() %}
-<div class="row g-4 mb-4">
+<div class="row g-3 mb-4">
     <div class="col-md-6">
-        <div class="card card-counter h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-clipboard-check display-4 text-warning"></i>
-                <h3 class="mt-2 mb-0">{{ planes_revision }}</h3>
-                <p class="text-muted mb-0">Planes en Revisión</p>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: #1d4ed8;">{{ stats.planes_en_revision }}</div>
+            <div class="stat-label">Planes En Revisión</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-value" style="color: #7b4c00;">{{ stats.planes_devueltos }}</div>
+            <div class="stat-label">Planes Devueltos</div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-lightning"></i> Acciones Rápidas
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('revision.lista_jefe') }}" class="btn btn-primary">
-                        <i class="bi bi-list-ul"></i> Revisar Planes Pendientes
-                    </a>
-                </div>
+<div class="pf-panel">
+    <div class="pf-panel-header">Revisión del Plan Anual de Capacitación</div>
+    <div class="pf-panel-content">
+        <div class="pf-infobox">
+            <i class="pi pi-info-circle"></i>
+            <div>
+                Revise el Plan Anual de Capacitación enviado por el Analista de Talento Humano.
+                Puede aprobarlo (enviarlo al Director de TH) o devolverlo con observaciones para corrección.
             </div>
         </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-info-circle"></i> Información
-            </div>
-            <div class="card-body">
-                <ul class="list-unstyled">
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Puede revisar planes de capacitación
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Aprueba o devuelve planes con observaciones
-                    </li>
-                </ul>
-            </div>
-        </div>
+        <a href="{{ url_for('revision.lista_jefe') }}" class="pf-btn pf-btn-primary">
+            <i class="pi pi-check-square"></i> Ir a Revisión de Planes
+        </a>
     </div>
 </div>
 
-{# --- PRESIDENTE --- #}
+{# ═══════════════════════════════════════════════════ #}
+{#              PRESIDENTE                              #}
+{# ═══════════════════════════════════════════════════ #}
 {% elif usuario.es_presidente() %}
-<div class="row g-4 mb-4">
+<div class="row g-3 mb-4">
     <div class="col-md-6">
-        <div class="card card-counter h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-check-all display-4 text-success"></i>
-                <h3 class="mt-2 mb-0">{{ planes_aprobacion }}</h3>
-                <p class="text-muted mb-0">Planes Pendientes de Aprobación</p>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: #7b4c00;">{{ stats.planes_pendientes }}</div>
+            <div class="stat-label">Planes Pendientes de Aprobación</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-value" style="color: #166534;">{{ stats.planes_aprobados }}</div>
+            <div class="stat-label">Planes Aprobados</div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-lightning"></i> Acciones Rápidas
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('revision.lista_presidente') }}" class="btn btn-primary">
-                        <i class="bi bi-list-ul"></i> Ver Planes para Aprobación
-                    </a>
-                </div>
+<div class="pf-panel">
+    <div class="pf-panel-header">Aprobación Final del Plan Anual de Capacitación</div>
+    <div class="pf-panel-content">
+        <div class="pf-infobox">
+            <i class="pi pi-info-circle"></i>
+            <div>
+                Usted es el único responsable de la aprobación final del Plan Anual de Capacitación.
+                Una vez aprobado, el plan quedará bloqueado permanentemente en modo solo lectura.
             </div>
         </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-info-circle"></i> Información
-            </div>
-            <div class="card-body">
-                <ul class="list-unstyled">
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Tiene la aprobación final de los planes
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Los planes aprobados quedan bloqueados
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check text-success"></i> Puede modificar el monto aprobado
-                    </li>
-                </ul>
-            </div>
-        </div>
+        <a href="{{ url_for('revision.lista_presidente') }}" class="pf-btn pf-btn-primary">
+            <i class="pi pi-verified"></i> Ir a Aprobación de Planes
+        </a>
     </div>
 </div>
 {% endif %}
+
 {% endblock %}

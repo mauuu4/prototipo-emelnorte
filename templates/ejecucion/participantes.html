@@ -1,93 +1,104 @@
 {% extends "base.html" %}
-
-{% block title %}Participantes - SIGEERN{% endblock %}
+{% block title %}Participantes — {{ capacitacion.get_nombre_tema() }} - SIGEERN{% endblock %}
 
 {% block content %}
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('ejecucion.lista') }}">Ejecucion</a></li>
-        <li class="breadcrumb-item active">Participantes</li>
-    </ol>
-</nav>
+<div class="breadcrumb-bar">
+    Inicio / <a href="{{ url_for('ejecucion.lista') }}" style="color:var(--primary);">Ejecución</a> /
+    <span>Participantes</span>
+</div>
 
-<div class="row">
-    <div class="col-md-5">
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-person-plus"></i> Agregar Participante
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('ejecucion.agregar_participante', capacitacion_id=capacitacion.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-3">
-                        <label for="codigo" class="form-label">Codigo *</label>
-                        <input type="text" class="form-control" id="codigo" name="codigo" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="nombres" class="form-label">Nombres *</label>
-                        <input type="text" class="form-control" id="nombres" name="nombres" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="cedula" class="form-label">Cedula *</label>
-                        <input type="text" class="form-control" id="cedula" name="cedula" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="cargo" class="form-label">Cargo *</label>
-                        <input type="text" class="form-control" id="cargo" name="cargo" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Guardar
-                    </button>
-                </form>
+<div class="row g-3">
+    <!-- Columna izquierda: info de la capacitación -->
+    <div class="col-md-4">
+        <div class="pf-panel">
+            <div class="pf-panel-header">Datos de la Capacitación</div>
+            <div class="pf-panel-content" style="font-size:0.875rem;">
+                <div style="margin-bottom:8px;">
+                    <div class="text-muted-sm" style="font-size:0.72rem;">TEMA</div>
+                    <strong>{{ capacitacion.get_nombre_tema() }}</strong>
+                </div>
+                <hr class="divider">
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Empresa:</span> <strong>{{ capacitacion.empresa_capacitadora or '—' }}</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Inicio:</span> <span>{{ capacitacion.fecha_inicio.strftime('%d/%m/%Y') }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Fin:</span> <span>{{ capacitacion.fecha_fin.strftime('%d/%m/%Y') }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Duración:</span> <span>{{ capacitacion.duracion_horas }}h</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Valor s/ IVA:</span> <span>${{ "%.2f"|format(capacitacion.valor_sin_iva) }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Valor c/ IVA:</span> <strong style="color:var(--primary);">${{ "%.2f"|format(capacitacion.valor_con_iva) }}</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Contratación:</span> <span style="font-size:0.78rem;">{{ capacitacion.proceso_contratacion or '—' }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Centro Costo:</span> <span>{{ capacitacion.centro_costo or '—' }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Etapa:</span> <span style="font-size:0.78rem;">{{ capacitacion.etapa_funcional or '—' }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span>Subetapa:</span> <span style="font-size:0.78rem;">{{ capacitacion.subetapa_funcional or '—' }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <span>Certificación:</span> <span style="font-size:0.78rem;">{{ capacitacion.tipo_certificacion or '—' }}</span>
+                </div>
+                {% if capacitacion.observaciones %}
+                <hr class="divider">
+                <div class="text-muted-sm" style="font-size:0.78rem;">{{ capacitacion.observaciones }}</div>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <div class="col-md-7">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-people"></i> Lista de Participantes
+    <!-- Columna derecha: participantes -->
+    <div class="col-md-8">
+        <div class="pf-panel">
+            <div class="pf-panel-header" style="text-align:left; display:flex; align-items:center; justify-content:space-between;">
+                <span><i class="pi pi-users" style="margin-right:6px;"></i>PERSONAL PARTICIPANTE</span>
+                <button type="button" class="pf-btn pf-btn-success" style="font-size:0.78rem; padding:0.3rem 0.9rem;"
+                        onclick="openModal('modalAgregarParticipante')">
+                    <i class="pi pi-plus"></i> Agregar Participante
+                </button>
             </div>
-            <div class="card-body">
-                {% if capacitacion.participantes.count() > 0 %}
+            <div class="pf-panel-content">
+                {% set participantes_activos = capacitacion.get_participantes_activos() %}
+                {% if participantes_activos %}
                 <div class="table-responsive">
-                    <table class="table table-sm">
+                    <table class="pf-datatable">
                         <thead>
                             <tr>
-                                <th>Codigo</th>
+                                <th style="width:30px;">#</th>
+                                <th>Código</th>
                                 <th>Nombres</th>
-                                <th>Cedula</th>
+                                <th>Cédula</th>
                                 <th>Cargo</th>
-                                <th>Certificado</th>
-                                <th>Acciones</th>
+                                <th style="text-align:center; width:80px;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for p in capacitacion.participantes %}
+                            {% for p in participantes_activos %}
                             <tr>
-                                <td>{{ p.codigo }}</td>
+                                <td class="text-muted-sm">{{ loop.index }}</td>
+                                <td><strong>{{ p.codigo }}</strong></td>
                                 <td>{{ p.nombres }}</td>
-                                <td>{{ p.cedula }}</td>
-                                <td>{{ p.cargo }}</td>
-                                <td>
-                                    {% if p.ruta_certificado %}
-                                    <a href="{{ url_for('ejecucion.descargar_certificado', participante_id=p.id) }}">Descargar</a>
-                                    {% else %}
-                                    <span class="text-muted">Sin archivo</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <form action="{{ url_for('ejecucion.eliminar_participante', capacitacion_id=capacitacion.id, participante_id=p.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Eliminar participante?');">
+                                <td class="text-muted-sm">{{ p.cedula }}</td>
+                                <td style="font-size:0.82rem;">{{ p.cargo or '—' }}</td>
+                                <td style="text-align:center;">
+                                    <form action="{{ url_for('ejecucion.eliminar_participante', capacitacion_id=capacitacion.id, participante_id=p.id) }}"
+                                          method="POST" style="display:inline;"
+                                          onsubmit="return confirm('¿Eliminar a {{ p.nombres }}?');">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                    <form action="{{ url_for('ejecucion.subir_certificado', capacitacion_id=capacitacion.id, participante_id=p.id) }}" method="POST" enctype="multipart/form-data" style="display:inline;">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <input type="file" name="archivo" class="form-control form-control-sm" style="width: 200px; display:inline-block;" required>
-                                        <button type="submit" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-upload"></i>
+                                        <button type="submit" class="pf-icon-btn pf-icon-btn-delete" title="Eliminar">
+                                            <i class="pi pi-times"></i>
                                         </button>
                                     </form>
                                 </td>
@@ -96,11 +107,138 @@
                         </tbody>
                     </table>
                 </div>
+                <div style="margin-top:0.5rem; font-size:0.78rem; color:#888; text-align:right;">
+                    Total: <strong>{{ participantes_activos|length }}</strong> participante(s)
+                </div>
                 {% else %}
-                <p class="text-muted">No hay participantes registrados.</p>
+                <div style="text-align:center; padding:2rem; color:#aaa;">
+                    <i class="pi pi-users" style="font-size:2.5rem; display:block; margin-bottom:1rem;"></i>
+                    <p style="font-size:0.9rem; color:#888;">No hay participantes registrados aún.</p>
+                    <button type="button" class="pf-btn pf-btn-primary" onclick="openModal('modalAgregarParticipante')">
+                        <i class="pi pi-plus"></i> Agregar Participante
+                    </button>
+                </div>
                 {% endif %}
             </div>
         </div>
+
+        <div style="text-align:right; margin-top:0.5rem;">
+            <a href="{{ url_for('ejecucion.lista') }}" class="pf-btn pf-btn-secondary">
+                <i class="pi pi-arrow-left"></i> Volver a la Lista
+            </a>
+        </div>
     </div>
 </div>
+
+<!-- MODAL: Agregar Participante -->
+<div class="pf-modal-overlay" id="modalAgregarParticipante" style="display:none;">
+    <div class="pf-modal">
+        <div class="pf-modal-header">
+            <h5><i class="pi pi-user-plus" style="margin-right:8px;"></i> AGREGAR PARTICIPANTE</h5>
+            <button class="pf-modal-close" onclick="closeModal('modalAgregarParticipante')">×</button>
+        </div>
+        <form method="POST" action="{{ url_for('ejecucion.agregar_participante', capacitacion_id=capacitacion.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="pf-modal-body">
+                <div class="pf-infobox" style="margin-bottom:1rem; font-size:0.8rem;">
+                    <i class="pi pi-info-circle"></i> Busque al empleado por su código. Se autocompletarán los datos.
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="pf-field" style="position:relative;">
+                            <label class="pf-label">Código del Empleado <span>*</span></label>
+                            <input type="text" class="pf-input" name="codigo" id="modal_p_codigo" required placeholder="Ej: EMP-001" autocomplete="off" oninput="buscarEmpleadoModal(this.value)" style="text-transform:uppercase;">
+                            <div id="modal_emp_sugerencias" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:0 0 8px 8px; box-shadow:0 4px 12px rgba(0,0,0,.1); z-index:100; max-height:200px; overflow-y:auto;"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Cédula <span>*</span></label>
+                            <input type="text" class="pf-input" name="cedula" id="modal_p_cedula" required placeholder="Auto" readonly style="background:#f1f5f9; color:#64748b;" maxlength="15">
+                        </div>
+                    </div>
+                </div>
+                <div class="pf-field">
+                    <label class="pf-label">Nombres Completos <span>*</span></label>
+                    <input type="text" class="pf-input" name="nombres" id="modal_p_nombres" required placeholder="Auto" readonly style="background:#f1f5f9; color:#64748b;">
+                </div>
+                <div class="pf-field">
+                    <label class="pf-label">Cargo</label>
+                    <input type="text" class="pf-input" name="cargo" id="modal_p_cargo" placeholder="Auto (editable)">
+                </div>
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalAgregarParticipante')">
+                    <i class="pi pi-times"></i> Cancelar
+                </button>
+                <button type="submit" class="pf-btn pf-btn-success">
+                    <i class="pi pi-save"></i> Guardar Participante
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let modalBuscarTimer = null;
+
+function openModal(id) { 
+    document.getElementById(id).style.display = 'flex'; 
+    document.getElementById('modal_p_codigo').value = '';
+    document.getElementById('modal_p_cedula').value = '';
+    document.getElementById('modal_p_nombres').value = '';
+    document.getElementById('modal_p_cargo').value = '';
+    document.getElementById('modal_emp_sugerencias').style.display = 'none';
+}
+
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('pf-modal-overlay')) {
+        e.target.style.display = 'none';
+    }
+    if (!e.target.closest('#modal_p_codigo') && !e.target.closest('#modal_emp_sugerencias')) {
+        const sug = document.getElementById('modal_emp_sugerencias');
+        if(sug) sug.style.display = 'none';
+    }
+});
+
+function buscarEmpleadoModal(val) {
+  clearTimeout(modalBuscarTimer);
+  const sug = document.getElementById('modal_emp_sugerencias');
+  if (val.length < 2) { sug.style.display = 'none'; return; }
+  modalBuscarTimer = setTimeout(() => {
+    fetch(`/ejecucion/api/empleados?q=${encodeURIComponent(val)}`)
+      .then(r => r.json())
+      .then(data => {
+        sug.innerHTML = '';
+        if (!data.length) {
+          sug.innerHTML = '<div style="padding:8px 12px; font-size:0.82rem; color:#888;">Sin resultados</div>';
+        } else {
+          data.forEach(emp => {
+            const item = document.createElement('div');
+            item.style.cssText = 'padding:8px 12px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #f1f5f9;';
+            item.innerHTML = `<strong>${emp.codigo}</strong> &mdash; ${emp.nombres} <span style="color:#888; font-size:0.78rem;">${emp.cargo}</span>`;
+            item.onmouseenter = () => item.style.background = '#f0f9ff';
+            item.onmouseleave = () => item.style.background = '';
+            item.onclick = () => seleccionarEmpleadoModal(emp);
+            sug.appendChild(item);
+          });
+        }
+        sug.style.display = 'block';
+      });
+  }, 250);
+}
+
+function seleccionarEmpleadoModal(emp) {
+  document.getElementById('modal_p_codigo').value = emp.codigo;
+  document.getElementById('modal_p_cedula').value = emp.cedula;
+  document.getElementById('modal_p_nombres').value = emp.nombres;
+  document.getElementById('modal_p_cargo').value = emp.cargo;
+  document.getElementById('modal_emp_sugerencias').style.display = 'none';
+}
+</script>
 {% endblock %}

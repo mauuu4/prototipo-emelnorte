@@ -60,7 +60,7 @@
             <p class="text-muted mt-3">No hay planes de capacitación registrados.</p>
             {% if session.usuario_rol == 'ANALISTA' %}
             <a href="{{ url_for('planes.nuevo') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Crear Primer Plan
+                <i class="bi bi-plus-circle"></i> Crear Plan
             </a>
             {% endif %}
         </div>

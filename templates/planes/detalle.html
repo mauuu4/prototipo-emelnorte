@@ -1,160 +1,292 @@
 {% extends "base.html" %}
+{% block title %}Plan {{ plan.anio }} - SIGEERN{% endblock %}
 
-{% block title %}Detalle del Plan {{ plan.anio }} - SIGEERN{% endblock %}
+{% block extra_css %}
+<style>
+    .tema-row-selected { background: #f0fdf4 !important; }
+    .tema-row-discarded { background: #fff7f7 !important; opacity: 0.75; }
+    .presupuesto-total-bar {
+        background: #f8f9fa; border: 1px solid var(--border);
+        border-radius: 3px; padding: 0.6rem 1rem;
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 0.875rem; margin-bottom: 0.8rem;
+    }
+    .presupuesto-total-bar .valor { font-size: 1.1rem; font-weight: 700; }
+    .presupuesto-ok { color: #166534; }
+    .presupuesto-over { color: #dc3545; }
+</style>
+{% endblock %}
 
 {% block content %}
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('planes.lista') }}">Planes</a></li>
-        <li class="breadcrumb-item">Plan {{ plan.anio }}</li>
-    </ol>
-</nav>
-
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-calendar-check"></i> Plan de Capacitación {{ plan.anio }}</h2>
-    <span class="badge badge-estado estado-{{ plan.estado }} fs-6">
-        {{ plan.estado.replace('_', ' ') }}
-    </span>
+<!-- Breadcrumb -->
+<div class="breadcrumb-bar">
+    Inicio / <a href="{{ url_for('planes.lista') }}" style="color: var(--primary);">Planes</a> / <span>Plan {{ plan.anio }}</span>
 </div>
 
-{# ALERTA DE PRESUPUESTO #}
+<!-- ─── ALERTA PRESUPUESTO ─── -->
 {% if supera_presupuesto %}
-<div class="alert alert-warning" role="alert">
-    <i class="bi bi-exclamation-triangle"></i>
-    <strong>¡Alerta!</strong> El presupuesto total seleccionado (${{ "%.2f"|format(total_seleccionado) }})
-    excede el monto referencial (${{ "%.2f"|format(plan.monto_referencial) }})
-    en ${{ "%.2f"|format(total_seleccionado - plan.monto_referencial) }}.
+<div class="pf-dangerbox">
+    <i class="pi pi-exclamation-triangle" style="font-size: 1.1rem;"></i>
+    <div>
+        <strong>¡Alerta de Presupuesto!</strong> El total seleccionado
+        (${{ "%.2f"|format(total_seleccionado) }}) supera el monto referencial
+        (${{ "%.2f"|format(plan.monto_referencial) }}) por
+        <strong>${{ "%.2f"|format(total_seleccionado - plan.monto_referencial) }}</strong>.
+        Revise los temas seleccionados o ajuste el presupuesto.
+    </div>
 </div>
 {% endif %}
 
-<div class="row">
-    {# INFORMACIÓN DEL PLAN #}
-    <div class="col-md-4">
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-info-circle"></i> Información del Plan
-            </div>
-            <div class="card-body">
-                <p><strong>Año:</strong> {{ plan.anio }}</p>
-                <p><strong>Monto Referencial:</strong> ${{ "%.2f"|format(plan.monto_referencial) }}</p>
+<div class="row g-3">
+    <!-- ─── COLUMNA IZQUIERDA: Info + Acciones ─── -->
+    <div class="col-md-3">
+        <!-- Info del Plan -->
+        <div class="pf-panel">
+            <div class="pf-panel-header">Información del Plan</div>
+            <div class="pf-panel-content" style="font-size: 0.875rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span>Año:</span> <strong>{{ plan.anio }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span>Estado:</span>
+                    <span class="estado-badge estado-{{ plan.estado }}">{{ plan.estado.replace('_', ' ') }}</span>
+                </div>
+                <hr class="divider">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span>Monto Ref.:</span> <strong>${{ "%.2f"|format(plan.monto_referencial) }}</strong>
+                </div>
                 {% if plan.monto_aprobado %}
-                <p><strong>Monto Aprobado:</strong> ${{ "%.2f"|format(plan.monto_aprobado) }}</p>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span>Monto Apr.:</span> <strong style="color: var(--success);">${{ "%.2f"|format(plan.monto_aprobado) }}</strong>
+                </div>
                 {% endif %}
-                <p><strong>Total Seleccionado:</strong> ${{ "%.2f"|format(total_seleccionado) }}</p>
-                <p><strong>Temas Totales:</strong> {{ plan.get_temas_count() }}</p>
-                <hr>
-                <p class="text-muted mb-0">
-                    <small>Creado: {{ plan.fecha_creacion.strftime('%d/%m/%Y') }}</small>
-                </p>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span>Total Sel.:</span>
+                    <strong class="{{ 'presupuesto-over' if supera_presupuesto else 'presupuesto-ok' }}">
+                        ${{ "%.2f"|format(total_seleccionado) }}
+                    </strong>
+                </div>
+                <hr class="divider">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span>Temas:</span> <strong>{{ plan.get_temas_count() }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Seleccionados:</span> <strong>{{ plan.get_temas_seleccionados_count() }}</strong>
+                </div>
+                <hr class="divider">
+                <div class="text-muted-sm">Creado: {{ plan.fecha_creacion.strftime('%d/%m/%Y') }}</div>
+                {% if plan.fecha_envio_jefe %}
+                <div class="text-muted-sm">Enviado: {{ plan.fecha_envio_jefe.strftime('%d/%m/%Y') }}</div>
+                {% endif %}
             </div>
         </div>
 
-        {# ACCIONES #}
-        {% if session.usuario_rol == 'ANALISTA' and plan.estado in ['BORRADOR', 'EN_CORRECCION'] %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-lightning"></i> Acciones
-            </div>
-            <div class="card-body">
-                <a href="{{ url_for('planes.nuevo_tema', plan_id=plan.id) }}"
-                   class="btn btn-primary w-100 mb-2">
-                    <i class="bi bi-plus-circle"></i> Agregar Tema
-                </a>
-                <form action="{{ url_for('planes.enviar_revision', plan_id=plan.id) }}" method="POST">
+        <!-- Acciones del Analista -->
+        {% if plan.is_editable() %}
+        <div class="pf-panel">
+            <div class="pf-panel-header">Acciones</div>
+            <div class="pf-panel-content" style="display: flex; flex-direction: column; gap: 8px;">
+
+                <!-- RN-04: Presupuesto aprobado -->
+                <form action="{{ url_for('planes.actualizar_presupuesto_aprobado', plan_id=plan.id) }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="bi bi-send"></i> Enviar a Revisión
+                    <label class="pf-label">Presupuesto Aprobado ($)</label>
+                    <div style="display: flex; gap: 4px;">
+                        <input type="number" class="pf-input" name="monto_aprobado"
+                               value="{{ plan.monto_aprobado or '' }}"
+                               step="0.01" min="0" placeholder="{{ '%.2f'|format(plan.monto_referencial) }}"
+                               style="flex: 1;">
+                        <button type="submit" class="pf-icon-btn pf-icon-btn-check" title="Guardar">
+                            <i class="pi pi-check"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <hr class="divider">
+
+                <!-- RN-04: Agregar tema -->
+                <button class="pf-btn pf-btn-primary" onclick="openModal('modalNuevaTema')" style="width: 100%; justify-content: center;">
+                    <i class="pi pi-plus"></i> Agregar Tema
+                </button>
+
+                <!-- RN-06: Enviar a revisión -->
+                {% if plan.get_temas_seleccionados_count() > 0 %}
+                <form action="{{ url_for('planes.enviar_revision', plan_id=plan.id) }}" method="POST"
+                      onsubmit="return confirm('¿Enviar el plan a revisión del Jefe de Personal?\n\nEl plan cambiará a estado \"En Revisión\".');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="pf-btn pf-btn-success" style="width: 100%; justify-content: center;">
+                        <i class="pi pi-send"></i> Enviar a Revisión
                     </button>
                 </form>
+                {% else %}
+                <button class="pf-btn pf-btn-success" disabled style="width: 100%; justify-content: center; opacity: 0.5; cursor: not-allowed;">
+                    <i class="pi pi-send"></i> Enviar a Revisión
+                </button>
+                <div class="text-muted-sm" style="text-align: center;">Seleccione al menos un tema</div>
+                {% endif %}
+            </div>
+        </div>
+        {% elif plan.is_blocked() %}
+        <div class="pf-panel">
+            <div class="pf-panel-header" style="background: #166534;">Plan Aprobado</div>
+            <div class="pf-panel-content">
+                <div style="text-align: center; color: #166534; font-size: 0.875rem;">
+                    <i class="pi pi-lock" style="font-size: 1.5rem; display: block; margin-bottom: 6px;"></i>
+                    <strong>Plan bloqueado</strong><br>
+                    <span class="text-muted-sm">Solo lectura</span>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="pf-panel">
+            <div class="pf-panel-header">Estado del Plan</div>
+            <div class="pf-panel-content">
+                <span class="estado-badge estado-{{ plan.estado }}" style="display: block; text-align: center;">
+                    {{ plan.estado.replace('_', ' ') }}
+                </span>
+                <div class="text-muted-sm" style="margin-top: 6px; text-align: center;">
+                    El plan está en proceso de revisión/aprobación.
+                </div>
             </div>
         </div>
         {% endif %}
+
+        <!-- Observaciones rápidas -->
+        <div class="pf-panel">
+            <div class="pf-panel-header">Observaciones</div>
+            <div class="pf-panel-content" style="max-height: 220px; overflow-y: auto;">
+                {% if observaciones %}
+                    {% for obs in observaciones %}
+                    <div class="obs-card obs-{{ obs.tipo_observacion }}">
+                        <div>{{ obs.observacion[:100] }}{% if obs.observacion|length > 100 %}...{% endif %}</div>
+                        <div class="text-muted-sm" style="margin-top: 2px;">
+                            {{ obs.autor }} — {{ obs.fecha_creacion.strftime('%d/%m/%Y') }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-muted-sm">Sin observaciones.</div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
-    {# TEMAS POR DIRECCIÓN #}
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-collection"></i> Temas Registrados
+    <!-- ─── COLUMNA DERECHA: Temas ─── -->
+    <div class="col-md-9">
+        <div class="pf-panel">
+            <div class="pf-panel-header" style="text-align: left;">
+                <i class="pi pi-list" style="margin-right: 6px;"></i>
+                TEMAS DE CAPACITACIÓN REGISTRADOS
             </div>
-            <div class="card-body">
+            <div class="pf-panel-content">
+
                 {% if temas_por_direccion %}
                     {% for dir_nombre, data in temas_por_direccion.items() %}
-                    <div class="mb-4">
-                        <h5 class="text-primary">
-                            <i class="bi bi-building"></i> {{ dir_nombre }}
-                            <span class="badge bg-secondary">{{ data.temas|length }}/{{ data.max_temas }}</span>
-                        </h5>
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <i class="pi pi-building" style="color: var(--primary);"></i>
+                            <strong style="color: var(--primary);">{{ dir_nombre }}</strong>
+                            <span style="font-size: 0.75rem; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 10px; font-weight: 600;">
+                                {{ data.temas|length }} / {{ data.max_temas }} temas
+                            </span>
+                        </div>
+
                         <div class="table-responsive">
-                            <table class="table table-sm">
+                            <table class="pf-datatable" style="font-size: 0.82rem;">
                                 <thead>
                                     <tr>
-                                        <th>Tema</th>
+                                        <th>#</th>
+                                        <th>Nombre del Tema</th>
+                                        <th>Etapa Funcional</th>
                                         <th>Modalidad</th>
-                                        <th>Horas</th>
-                                        <th>Participantes</th>
+                                        <th>Hrs</th>
+                                        <th>Part.</th>
                                         <th>Mes</th>
                                         <th>Ppto. Ref.</th>
-                                        {% if session.usuario_rol == 'ANALISTA' %}
                                         <th>Ppto. Apr.</th>
-                                        <th>Acciones</th>
-                                        {% endif %}
+                                        <th style="text-align:center; width: 100px;">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for tema in data.temas %}
                                     {% set ts = tema.tema_seleccionado %}
-                                    <tr>
-                                        <td>{{ tema.nombre }}</td>
-                                        <td>{{ tema.modalidad }}</td>
+                                    <tr class="{% if ts and ts.seleccionado %}tema-row-selected{% elif ts and not ts.seleccionado %}tema-row-discarded{% endif %}">
+                                        <td class="text-muted-sm">{{ loop.index }}</td>
+                                        <td>
+                                            <strong>{{ tema.nombre }}</strong>
+                                            {% if tema.es_del_analista %}
+                                            <span style="font-size: 0.68rem; background: #dbeafe; color: #1d4ed8; padding: 1px 5px; border-radius: 2px; margin-left: 4px;">Analista</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span title="{{ tema.subetapa_funcional }}">{{ tema.etapa_funcional[:20] }}{% if tema.etapa_funcional|length > 20 %}...{% endif %}</span>
+                                        </td>
+                                        <td>
+                                            <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 2px;
+                                                {% if tema.modalidad == 'VIRTUAL' %}background: #dbeafe; color: #1d4ed8;
+                                                {% elif tema.modalidad == 'PRESENCIAL' %}background: #dcfce7; color: #166534;
+                                                {% else %}background: #fef3c7; color: #92400e;{% endif %}">
+                                                {{ tema.modalidad }}
+                                            </span>
+                                        </td>
                                         <td>{{ tema.horas }}</td>
                                         <td>{{ tema.num_participantes }}</td>
-                                        <td>{{ tema.get_nombre_mes() }}</td>
-                                        <td>${{ "%.2f"|format(tema.presupuesto_referencial) }}</td>
-                                        {% if session.usuario_rol == 'ANALISTA' %}
+                                        <td>{{ tema.get_nombre_mes()[:3] }}</td>
+                                        <td>${{ "%.0f"|format(tema.presupuesto_referencial) }}</td>
                                         <td>
                                             {% if ts and ts.seleccionado %}
-                                                {% if plan.estado in ['BORRADOR', 'EN_CORRECCION'] %}
-                                                <form action="{{ url_for('planes.actualizar_presupuesto', plan_id=plan.id, tema_id=tema.id) }}"
-                                                    method="POST" class="d-flex">
+                                                {% if plan.is_editable() %}
+                                                <form action="{{ url_for('planes.actualizar_presupuesto_tema', plan_id=plan.id, tema_id=tema.id) }}"
+                                                      method="POST" style="display: flex; gap: 3px;">
                                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <input type="number" name="presupuesto_aprobado"
-                                                           class="form-control form-control-sm"
-                                                           value="{{ ts.presupuesto_aprobado|default(tema.presupuesto_referencial) }}"
-                                                           step="0.01" style="width: 100px;">
-                                                    <button type="submit" class="btn btn-sm btn-outline-primary">
-                                                        <i class="bi bi-check"></i>
+                                                           class="pf-input" style="width: 75px; padding: 3px 5px; font-size: 0.78rem;"
+                                                           value="{{ ts.presupuesto_aprobado or tema.presupuesto_referencial }}"
+                                                           step="0.01" min="0">
+                                                    <button type="submit" class="pf-icon-btn pf-icon-btn-check" title="Actualizar">
+                                                        <i class="pi pi-check"></i>
                                                     </button>
                                                 </form>
                                                 {% else %}
-                                                ${{ "%.2f"|format(ts.presupuesto_aprobado|default(0)) }}
+                                                ${{ "%.0f"|format(ts.presupuesto_aprobado or 0) }}
                                                 {% endif %}
                                             {% else %}
-                                            <span class="text-muted">-</span>
+                                                <span class="text-muted-sm">—</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td style="text-align: center; white-space: nowrap;">
+                                            <!-- Toggle selección -->
                                             {% if ts %}
-                                              <form action="{{ url_for('planes.seleccionar_tema', plan_id=plan.id, tema_id=tema.id) }}"
-                                                  method="POST" style="display:inline;">
+                                            <form action="{{ url_for('planes.toggle_tema', plan_id=plan.id, tema_id=tema.id) }}"
+                                                  method="POST" style="display: inline;">
                                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                <button type="submit" class="btn btn-sm {% if ts.seleccionado %}btn-success{% else %}btn-outline-secondary{% endif %}">
-                                                    <i class="bi {% if ts.seleccionado %}bi-check-circle{% else %}bi-circle{% endif %}"></i>
+                                                {% if plan.is_editable() %}
+                                                <button type="submit"
+                                                        class="pf-icon-btn {% if ts.seleccionado %}pf-icon-btn-check{% else %}pf-icon-btn-uncheck{% endif %}"
+                                                        title="{{ 'Descartar' if ts.seleccionado else 'Seleccionar' }}">
+                                                    <i class="pi {% if ts.seleccionado %}pi-check-circle{% else %}pi-circle{% endif %}"></i>
                                                 </button>
+                                                {% else %}
+                                                <span class="pf-icon-btn {% if ts.seleccionado %}pf-icon-btn-check{% else %}pf-icon-btn-uncheck{% endif %}"
+                                                      style="cursor: default;">
+                                                    <i class="pi {% if ts.seleccionado %}pi-check-circle{% else %}pi-circle{% endif %}"></i>
+                                                </span>
+                                                {% endif %}
                                             </form>
                                             {% endif %}
-                                            {% if plan.estado in ['BORRADOR', 'EN_CORRECCION'] %}
-                                              <form action="{{ url_for('planes.eliminar_tema', plan_id=plan.id, tema_id=tema.id) }}"
-                                                  method="POST" style="display:inline;"
-                                                  onsubmit="return confirm('¿Eliminar este tema?');">
+
+                                            <!-- Eliminar (solo si editable) -->
+                                            {% if plan.is_editable() %}
+                                            <form action="{{ url_for('planes.eliminar_tema', plan_id=plan.id, tema_id=tema.id) }}"
+                                                  method="POST" style="display: inline;"
+                                                  onsubmit="return confirm('¿Eliminar el tema «{{ tema.nombre }}»?');">
                                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                    <i class="bi bi-trash"></i>
+                                                <button type="submit" class="pf-icon-btn pf-icon-btn-delete" title="Eliminar">
+                                                    <i class="pi pi-times"></i>
                                                 </button>
                                             </form>
                                             {% endif %}
                                         </td>
-                                        {% endif %}
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -162,44 +294,131 @@
                         </div>
                     </div>
                     {% endfor %}
+
                 {% else %}
-                <div class="text-center py-4 text-muted">
-                    <i class="bi bi-inbox display-4"></i>
+                <div style="text-align: center; padding: 3rem 1rem; color: #888;">
+                    <i class="pi pi-inbox" style="font-size: 2.5rem; display: block; margin-bottom: 1rem;"></i>
                     <p>No hay temas registrados en este plan.</p>
+                    <p class="text-muted-sm">Los directores deben registrar sus necesidades y el Analista puede agregar temas adicionales.</p>
                 </div>
                 {% endif %}
-            </div>
-        </div>
 
-        {# OBSERVACIONES #}
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-chat-left-text"></i> Observaciones
-            </div>
-            <div class="card-body">
-                {% if observaciones %}
-                    {% for obs in observaciones %}
-                    <div class="border-start border-3 ps-3 mb-3 {% if obs.tipo_observacion == 'APROBACION' %}border-success{% elif obs.tipo_observacion == 'DEVOLUCION' %}border-danger{% else %}border-warning{% endif %}">
-                        <p class="mb-1">{{ obs.observacion }}</p>
-                        <small class="text-muted">
-                            {{ obs.autor }} - {{ obs.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
-                        </small>
-                    </div>
-                    {% endfor %}
-                {% endif %}
-
-                <form action="{{ url_for('planes.agregar_observacion', plan_id=plan.id) }}" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-2">
-                        <textarea name="observacion" class="form-control"
-                                  placeholder="Agregar una observación..." rows="2"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-plus"></i> Agregar
-                    </button>
-                </form>
             </div>
         </div>
     </div>
 </div>
+
+<!-- ═══════════════ MODAL: AGREGAR TEMA (Analista - RN-04) ═══════════════ -->
+<div class="pf-modal-overlay" id="modalNuevaTema" style="display:none;">
+    <div class="pf-modal pf-modal-lg">
+        <div class="pf-modal-header">
+            <h5><i class="pi pi-plus-circle" style="margin-right: 8px;"></i> AGREGAR TEMA DE CAPACITACIÓN</h5>
+            <button class="pf-modal-close" onclick="closeModal('modalNuevaTema')">×</button>
+        </div>
+        <form method="POST" action="{{ url_for('planes.nuevo_tema', plan_id=plan.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="pf-modal-body">
+                <div class="pf-infobox">
+                    <i class="pi pi-info-circle"></i>
+                    <div>Como Analista, puede agregar temas adicionales que se incluirán directamente como seleccionados.</div>
+                </div>
+
+                <div class="pf-field">
+                    <label class="pf-label">Nombre de la Capacitación <span>*</span></label>
+                    <input type="text" class="pf-input" name="nombre" required placeholder="Ej: Gestión de Proyectos Ágiles">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Dirección / Área <span>*</span></label>
+                            <select class="pf-select" name="direccion_id" required>
+                                <option value="">-- Seleccionar dirección --</option>
+                                {% for dir in direcciones %}
+                                <option value="{{ dir.id }}">{{ dir.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Modalidad <span>*</span></label>
+                            <select class="pf-select" name="modalidad" required>
+                                <option value="PRESENCIAL">Presencial</option>
+                                <option value="VIRTUAL">Virtual</option>
+                                <option value="MIXTO">Mixto</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Etapa Funcional <span>*</span></label>
+                            <select class="pf-select" name="etapa_funcional" required>
+                                <option value="">-- Seleccionar --</option>
+                                <option>etapa 1</option>
+                                <option>etapa 2</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Subetapa Funcional <span>*</span></label>
+                            <select class="pf-select" name="subetapa_funcional" required>
+                                <option value="">-- Seleccionar --</option>
+                                <option>subetapa 1</option>
+                                <option>subetapa 2</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="pf-field">
+                            <label class="pf-label">N° Participantes <span>*</span></label>
+                            <input type="number" class="pf-input" name="num_participantes" min="1" required>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pf-field">
+                            <label class="pf-label">Tiempo (Horas) <span>*</span></label>
+                            <input type="number" class="pf-input" name="horas" step="0.5" min="0.5" required>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pf-field">
+                            <label class="pf-label">Ppto. Referencial ($) <span>*</span></label>
+                            <input type="number" class="pf-input" name="presupuesto_referencial" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pf-field">
+                            <label class="pf-label">Mes de Ejecución <span>*</span></label>
+                            <select class="pf-select" name="mes_ejecucion" required>
+                                <option value="1">Enero</option><option value="2">Febrero</option>
+                                <option value="3">Marzo</option><option value="4">Abril</option>
+                                <option value="5">Mayo</option><option value="6">Junio</option>
+                                <option value="7">Julio</option><option value="8">Agosto</option>
+                                <option value="9">Septiembre</option><option value="10">Octubre</option>
+                                <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalNuevaTema')">
+                    <i class="pi pi-times"></i> Cancelar
+                </button>
+                <button type="submit" class="pf-btn pf-btn-success">
+                    <i class="pi pi-save"></i> Guardar Tema
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}

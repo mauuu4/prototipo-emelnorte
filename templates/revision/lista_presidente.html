@@ -1,37 +1,68 @@
 {% extends "base.html" %}
-
-{% block title %}Aprobacion Presidente - SIGEERN{% endblock %}
+{% block title %}Aprobación Final — Presidente - SIGEERN{% endblock %}
 
 {% block content %}
-<h2 class="mb-4"><i class="bi bi-check-circle"></i> Planes para Aprobacion</h2>
+<div class="breadcrumb-bar">Inicio / <span>Aprobación Final del Plan de Capacitación</span></div>
 
-<div class="card">
-    <div class="card-body">
+<div class="pf-panel">
+    <div class="pf-panel-header" style="text-align: left;">
+        <i class="pi pi-verified" style="margin-right: 6px;"></i>
+        APROBACIÓN FINAL — PRESIDENTE EJECUTIVO
+    </div>
+    <div class="pf-panel-content">
+        <div class="pf-infobox">
+            <i class="pi pi-info-circle"></i>
+            <div>
+                Como Presidente Ejecutivo, usted es el único responsable de la aprobación final del Plan Anual de Capacitación.
+                Una vez aprobado, el plan <strong>quedará bloqueado permanentemente</strong> en modo solo lectura.
+            </div>
+        </div>
+
         {% if planes %}
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="pf-datatable">
                 <thead>
                     <tr>
-                        <th>Anio</th>
+                        <th>Año</th>
+                        <th>Monto Referencial</th>
+                        <th>Total Seleccionado</th>
+                        <th>Temas</th>
                         <th>Estado</th>
-                        <th>Acciones</th>
+                        <th>Enviado Por</th>
+                        <th style="text-align: center; width: 200px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for plan in planes %}
                     <tr>
-                        <td>{{ plan.anio }}</td>
+                        <td><strong>{{ plan.anio }}</strong></td>
+                        <td>${{ "%.2f"|format(plan.monto_referencial) }}</td>
+                        <td><strong>${{ "%.2f"|format(plan.get_total_seleccionado()) }}</strong></td>
+                        <td>{{ plan.get_temas_seleccionados_count() }}</td>
                         <td>
-                            <span class="badge badge-estado estado-{{ plan.estado }}">{{ plan.estado.replace('_', ' ') }}</span>
+                            <span class="estado-badge estado-{{ plan.estado }}">{{ plan.estado.replace('_', ' ') }}</span>
                         </td>
-                        <td>
-                            <a href="{{ url_for('revision.ver_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i>
+                        <td class="text-muted-sm">
+                            {% if plan.fecha_aprobacion %}
+                            {{ plan.fecha_aprobacion.strftime('%d/%m/%Y') }}
+                            {% elif plan.fecha_envio_director %}
+                            {{ plan.fecha_envio_director.strftime('%d/%m/%Y') }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td style="text-align: center; white-space: nowrap;">
+                            <a href="{{ url_for('revision.ver_plan', plan_id=plan.id) }}"
+                               class="pf-btn pf-btn-outlined" style="padding: 0.3rem 0.7rem; font-size: 0.78rem;">
+                                <i class="pi pi-eye"></i> Ver Plan
                             </a>
                             {% if plan.estado == 'EN_APROBACION' %}
-                            <a href="{{ url_for('planes.aprobar_presidente', plan_id=plan.id) }}" class="btn btn-sm btn-success">
-                                <i class="bi bi-check"></i>
-                            </a>
+                            <button class="pf-btn pf-btn-success" style="padding: 0.3rem 0.7rem; font-size: 0.78rem;"
+                                    onclick="abrirAprobacion({{ plan.id }}, {{ plan.anio }})">
+                                <i class="pi pi-verified"></i> Aprobar
+                            </button>
+                            {% elif plan.estado == 'APROBADO' %}
+                            <span style="font-size: 0.78rem; color: #166534; font-weight: 600;">
+                                <i class="pi pi-lock"></i> Aprobado
+                            </span>
                             {% endif %}
                         </td>
                     </tr>
@@ -40,8 +71,49 @@
             </table>
         </div>
         {% else %}
-        <p class="text-muted">No hay planes pendientes.</p>
+        <div style="text-align: center; padding: 3rem; color: #888;">
+            <i class="pi pi-verified" style="font-size: 3rem; display: block; margin-bottom: 1rem; color: #ccc;"></i>
+            <p>No hay planes pendientes de aprobación.</p>
+        </div>
         {% endif %}
     </div>
 </div>
+
+<!-- ═══════════════ MODAL: APROBAR DEFINITIVAMENTE ═══════════════ -->
+<div class="pf-modal-overlay" id="modalAprobarFinal" style="display:none;">
+    <div class="pf-modal">
+        <div class="pf-modal-header" style="background: #166534;">
+            <h5><i class="pi pi-verified" style="margin-right: 8px;"></i> APROBACIÓN FINAL DEL PLAN</h5>
+            <button class="pf-modal-close" onclick="closeModal('modalAprobarFinal')">×</button>
+        </div>
+        <form method="POST" id="formAprobarFinal" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="pf-modal-body">
+                <div class="pf-infobox" style="background: #d1e7dd; border-color: #a3cfbb; color: #0a3622;">
+                    <i class="pi pi-info-circle"></i>
+                    <div>¿Confirma la aprobación definitiva del plan <strong id="labelFinal"></strong>? El plan quedará <strong>bloqueado permanentemente</strong> en modo solo lectura.</div>
+                </div>
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalAprobarFinal')">
+                    <i class="pi pi-times"></i> Cancelar
+                </button>
+                <button type="submit" class="pf-btn pf-btn-success">
+                    <i class="pi pi-verified"></i> Aprobar Definitivamente
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function abrirAprobacion(planId, anio) {
+    document.getElementById('formAprobarFinal').action = '/planes/' + planId + '/aprobar-final';
+    document.getElementById('labelFinal').textContent = 'Plan de Capacitación ' + anio;
+    openModal('modalAprobarFinal');
+}
+</script>
 {% endblock %}

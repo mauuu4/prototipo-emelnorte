@@ -1,60 +1,106 @@
 {% extends "base.html" %}
-
-{% block title %}Necesidades de Capacitacion - SIGEERN{% endblock %}
+{% block title %}Mis Necesidades de Capacitación - SIGEERN{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-plus-circle"></i> Necesidades de Capacitacion</h2>
-    {% if puede_agregar %}
-    <a href="{{ url_for('necesidades.nuevo') }}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Nueva Necesidad
-    </a>
-    {% endif %}
-</div>
+<div class="breadcrumb-bar">Inicio / <span>Necesidades de Capacitación</span></div>
 
-<div class="card mb-3">
-    <div class="card-body">
-        <strong>Plan vigente:</strong> {{ plan.anio }}
-        <span class="badge badge-estado estado-{{ plan.estado }} ms-2">{{ plan.estado.replace('_', ' ') }}</span>
+<!-- Header con info del plan vigente -->
+<div class="pf-panel">
+    <div class="pf-panel-header" style="text-align:left; display:flex; align-items:center; justify-content:space-between;">
+        <span><i class="pi pi-list" style="margin-right:6px;"></i>
+        NECESIDADES DE CAPACITACIÓN — {{ usuario.direccion.nombre|upper if usuario.direccion else '' }}
+        </span>
+        {% if puede_agregar %}
+        <button type="button" class="pf-btn pf-btn-success" style="font-size:0.78rem; padding:0.3rem 0.9rem;"
+                onclick="openModal('modalNuevaNecesidad')">
+            <i class="pi pi-plus"></i> Nueva Necesidad
+        </button>
+        {% endif %}
     </div>
-</div>
+    <div class="pf-panel-content">
 
-<div class="card">
-    <div class="card-body">
+        <!-- Estado del plan -->
+        <div class="pf-infobox" style="margin-bottom:1rem;">
+            <i class="pi pi-info-circle"></i>
+            <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:center;">
+                <span><strong>Plan Vigente:</strong> {{ plan.anio }}</span>
+                <span>Estado: <span class="estado-badge estado-{{ plan.estado }}">{{ plan.estado.replace('_',' ') }}</span></span>
+                <span>Temas registrados: <strong>{{ temas|length }}</strong> de <strong>{{ max_temas }}</strong></span>
+                <span>Dirección: <span class="dir-badge">{{ usuario.direccion.nombre if usuario.direccion else '' }}</span></span>
+            </div>
+        </div>
+
+        <!-- Alertas de límite -->
+        {% if not puede_agregar_estado %}
+        <div class="pf-warningbox">
+            <i class="pi pi-lock"></i>
+            <div>
+                El Plan de Capacitación <strong>{{ plan.anio }}</strong> ya no acepta nuevas necesidades.<br>
+                Estado actual: <strong>{{ plan.estado.replace('_',' ') }}</strong>. Comuníquese con el Analista de TH.
+            </div>
+        </div>
+        {% elif temas|length >= max_temas %}
+        <div class="pf-warningbox">
+            <i class="pi pi-exclamation-triangle"></i>
+            <div>
+                Ha alcanzado el límite máximo de <strong>{{ max_temas }} temas</strong> para
+                <strong>{{ usuario.direccion.nombre if usuario.direccion else 'su dirección' }}</strong>.
+                No puede registrar más necesidades.
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tabla de necesidades -->
         {% if temas %}
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="pf-datatable">
                 <thead>
                     <tr>
-                        <th>Tema</th>
-                        <th>Modalidad</th>
-                        <th>Horas</th>
-                        <th>Participantes</th>
-                        <th>Mes</th>
-                        <th>Presupuesto</th>
-                        {% if usuario.es_director() %}
-                        <th>Acciones</th>
+                        <th style="width:30px;">#</th>
+                        <th>Nombre de la Capacitación</th>
+                        <th>Etapa Funcional</th>
+                        <th>Subetapa</th>
+                        <th style="width:90px;">Modalidad</th>
+                        <th style="width:55px;">Horas</th>
+                        <th style="width:75px;">Part.</th>
+                        <th style="width:80px;">Mes</th>
+                        <th style="width:110px;">Presupuesto</th>
+                        {% if puede_agregar_estado %}
+                        <th style="width:75px; text-align:center;">Acciones</th>
                         {% endif %}
                     </tr>
                 </thead>
                 <tbody>
                     {% for tema in temas %}
                     <tr>
-                        <td>{{ tema.nombre }}</td>
-                        <td>{{ tema.modalidad }}</td>
-                        <td>{{ tema.horas }}</td>
-                        <td>{{ tema.num_participantes }}</td>
-                        <td>{{ tema.get_nombre_mes() }}</td>
-                        <td>${{ "%.2f"|format(tema.presupuesto_referencial) }}</td>
-                        {% if usuario.es_director() %}
+                        <td class="text-muted-sm">{{ loop.index }}</td>
+                        <td><strong>{{ tema.nombre }}</strong></td>
+                        <td style="font-size:0.8rem;">{{ tema.etapa_funcional }}</td>
+                        <td class="text-muted-sm" style="font-size:0.78rem;">{{ tema.subetapa_funcional }}</td>
                         <td>
-                            <a href="{{ url_for('necesidades.editar', tema_id=tema.id) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <form action="{{ url_for('necesidades.eliminar', tema_id=tema.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Eliminar este tema?');">
+                            <span style="font-size:0.7rem; padding:2px 7px; border-radius:10px; font-weight:600;
+                                {% if tema.modalidad == 'VIRTUAL' %}background:#dbeafe;color:#1d4ed8;
+                                {% elif tema.modalidad == 'PRESENCIAL' %}background:#dcfce7;color:#166534;
+                                {% else %}background:#fef3c7;color:#92400e;{% endif %}">
+                                {{ tema.modalidad }}
+                            </span>
+                        </td>
+                        <td>{{ tema.horas }}h</td>
+                        <td>{{ tema.num_participantes }}</td>
+                        <td class="text-muted-sm">{{ tema.get_nombre_mes()[:3] }}</td>
+                        <td><strong>${{ "%.2f"|format(tema.presupuesto_referencial) }}</strong></td>
+                        {% if puede_agregar_estado %}
+                        <td style="text-align:center; white-space:nowrap;">
+                            <button type="button" class="pf-icon-btn pf-icon-btn-edit" title="Editar"
+                                    onclick="abrirEditar({{ tema.id }}, '{{ tema.nombre|e }}', '{{ tema.etapa_funcional|e }}', '{{ tema.subetapa_funcional|e }}', {{ tema.num_participantes }}, '{{ tema.modalidad }}', {{ tema.horas }}, {{ tema.presupuesto_referencial }}, {{ tema.mes_ejecucion }})">
+                                <i class="pi pi-pencil"></i>
+                            </button>
+                            <form action="{{ url_for('necesidades.eliminar', tema_id=tema.id) }}" method="POST"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('¿Eliminar «{{ tema.nombre }}»?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash"></i>
+                                <button type="submit" class="pf-icon-btn pf-icon-btn-delete" title="Eliminar">
+                                    <i class="pi pi-times"></i>
                                 </button>
                             </form>
                         </td>
@@ -65,11 +111,276 @@
             </table>
         </div>
         {% else %}
-        <div class="text-center py-5">
-            <i class="bi bi-inbox display-1 text-muted"></i>
-            <p class="text-muted mt-3">No hay necesidades registradas.</p>
+        <div style="text-align:center; padding:3rem 1rem; color:#aaa;">
+            <i class="pi pi-inbox" style="font-size:3rem; display:block; margin-bottom:1rem;"></i>
+            <p style="font-size:0.9rem; color:#888;">No ha registrado necesidades de capacitación para este período.</p>
+            {% if puede_agregar %}
+            <button type="button" class="pf-btn pf-btn-primary" onclick="openModal('modalNuevaNecesidad')">
+                <i class="pi pi-plus"></i> Registrar Necesidad
+            </button>
+            {% endif %}
         </div>
         {% endif %}
     </div>
 </div>
+
+
+{# ═══════════════ MODAL: NUEVA NECESIDAD ═══════════════ #}
+<div class="pf-modal-overlay" id="modalNuevaNecesidad" style="display:none;">
+    <div class="pf-modal pf-modal-lg">
+        <div class="pf-modal-header">
+            <h5><i class="pi pi-plus-circle" style="margin-right:8px;"></i> REGISTRAR NECESIDAD DE CAPACITACIÓN</h5>
+            <button type="button" class="pf-modal-close" onclick="closeModal('modalNuevaNecesidad')">×</button>
+        </div>
+        <form method="POST" action="{{ url_for('necesidades.nuevo') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="pf-modal-body">
+
+                <div class="row">
+                    <div class="col-12">
+                        <div class="pf-field">
+                            <label class="pf-label">Dirección</label>
+                            <input type="text" class="pf-input"
+                                   value="{{ usuario.direccion.nombre if usuario.direccion else '' }}"
+                                   disabled style="background:#f8f9fa; color:#666;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pf-field">
+                    <label class="pf-label">Nombre de la Capacitación <span>*</span></label>
+                    <input type="text" class="pf-input" name="nombre" required
+                           placeholder="Ej: Gestión de Redes de Distribución Eléctrica">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Etapa Funcional <span>*</span></label>
+                            <select class="pf-select" name="etapa_funcional" required>
+                                <option value="">-- Seleccionar --</option>
+                                {% for etapa in etapas %}
+                                <option value="{{ etapa }}">{{ etapa }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Subetapa Funcional <span>*</span></label>
+                            <select class="pf-select" name="subetapa_funcional" required>
+                                <option value="">-- Seleccionar --</option>
+                                {% for sub in subetapas %}
+                                <option value="{{ sub }}">{{ sub }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="pf-field">
+                            <label class="pf-label">N° Participantes <span>*</span></label>
+                            <input type="number" class="pf-input" name="num_participantes" min="1" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pf-field">
+                            <label class="pf-label">Modalidad <span>*</span></label>
+                            <select class="pf-select" name="modalidad" required>
+                                <option value="PRESENCIAL">Presencial</option>
+                                <option value="VIRTUAL">Virtual</option>
+                                <option value="MIXTO">Mixto</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pf-field">
+                            <label class="pf-label">Tiempo en Horas <span>*</span></label>
+                            <input type="number" class="pf-input" name="horas" step="0.5" min="0.5" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Presupuesto Referencial <span>*</span></label>
+                            <div class="pf-input-group">
+                                <div class="pf-input-prefix">$</div>
+                                <input type="number" class="pf-input" name="presupuesto_referencial"
+                                       step="0.01" min="0" placeholder="0.00" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Mes de Ejecución <span>*</span></label>
+                            <select class="pf-select" name="mes_ejecucion" required>
+                                {% for num, nombre in meses %}
+                                <option value="{{ num }}">{{ nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalNuevaNecesidad')">
+                    <i class="pi pi-times"></i> Cancelar
+                </button>
+                <button type="submit" class="pf-btn pf-btn-success">
+                    <i class="pi pi-save"></i> Guardar Necesidad
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+{# ═══════════════ MODAL: EDITAR NECESIDAD ═══════════════ #}
+<div class="pf-modal-overlay" id="modalEditarNecesidad" style="display:none;">
+    <div class="pf-modal pf-modal-lg">
+        <div class="pf-modal-header">
+            <h5><i class="pi pi-pencil" style="margin-right:8px;"></i> EDITAR NECESIDAD DE CAPACITACIÓN</h5>
+            <button type="button" class="pf-modal-close" onclick="closeModal('modalEditarNecesidad')">×</button>
+        </div>
+        <form method="POST" id="formEditar" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="pf-modal-body">
+
+                <div class="pf-field">
+                    <label class="pf-label">Nombre de la Capacitación <span>*</span></label>
+                    <input type="text" class="pf-input" name="nombre" id="edit_nombre" required>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Etapa Funcional <span>*</span></label>
+                            <select class="pf-select" name="etapa_funcional" id="edit_etapa" required>
+                                {% for etapa in etapas %}
+                                <option value="{{ etapa }}">{{ etapa }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Subetapa Funcional <span>*</span></label>
+                            <select class="pf-select" name="subetapa_funcional" id="edit_subetapa" required>
+                                {% for sub in subetapas %}
+                                <option value="{{ sub }}">{{ sub }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="pf-field">
+                            <label class="pf-label">N° Participantes <span>*</span></label>
+                            <input type="number" class="pf-input" name="num_participantes" id="edit_participantes" min="1" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pf-field">
+                            <label class="pf-label">Modalidad <span>*</span></label>
+                            <select class="pf-select" name="modalidad" id="edit_modalidad" required>
+                                <option value="PRESENCIAL">Presencial</option>
+                                <option value="VIRTUAL">Virtual</option>
+                                <option value="MIXTO">Mixto</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pf-field">
+                            <label class="pf-label">Tiempo en Horas <span>*</span></label>
+                            <input type="number" class="pf-input" name="horas" id="edit_horas" step="0.5" min="0.5" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Presupuesto Referencial <span>*</span></label>
+                            <div class="pf-input-group">
+                                <div class="pf-input-prefix">$</div>
+                                <input type="number" class="pf-input" name="presupuesto_referencial"
+                                       id="edit_presupuesto" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Mes de Ejecución <span>*</span></label>
+                            <select class="pf-select" name="mes_ejecucion" id="edit_mes" required>
+                                {% for num, nombre in meses %}
+                                <option value="{{ num }}">{{ nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalEditarNecesidad')">
+                    <i class="pi pi-times"></i> Cancelar
+                </button>
+                <button type="submit" class="pf-btn pf-btn-primary">
+                    <i class="pi pi-save"></i> Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openModal(id) {
+    var el = document.getElementById(id);
+    el.style.display = 'flex';
+}
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+}
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('pf-modal-overlay')) {
+        e.target.style.display = 'none';
+    }
+});
+
+function abrirEditar(id, nombre, etapa, subetapa, participantes, modalidad, horas, presupuesto, mes) {
+    document.getElementById('formEditar').action = '/necesidades/' + id + '/editar';
+    document.getElementById('edit_nombre').value = nombre;
+    document.getElementById('edit_participantes').value = participantes;
+    document.getElementById('edit_horas').value = horas;
+    document.getElementById('edit_presupuesto').value = presupuesto;
+    setSelect('edit_etapa', etapa);
+    setSelect('edit_subetapa', subetapa);
+    setSelect('edit_modalidad', modalidad);
+    setSelectByVal('edit_mes', mes);
+    openModal('modalEditarNecesidad');
+}
+
+function setSelect(id, val) {
+    var sel = document.getElementById(id);
+    for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === val) { sel.selectedIndex = i; return; }
+    }
+}
+function setSelectByVal(id, val) {
+    var sel = document.getElementById(id);
+    for (var i = 0; i < sel.options.length; i++) {
+        if (parseInt(sel.options[i].value) === parseInt(val)) { sel.selectedIndex = i; return; }
+    }
+}
+</script>
 {% endblock %}

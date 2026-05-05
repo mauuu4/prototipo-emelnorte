@@ -1,29 +1,40 @@
 {% extends "base.html" %}
-
 {% block title %}Planes de Capacitación - SIGEERN{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-calendar-check"></i> Planes de Capacitación</h2>
-    {% if session.usuario_rol == 'ANALISTA' %}
-    <a href="{{ url_for('planes.nuevo') }}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Nuevo Plan
-    </a>
-    {% endif %}
-</div>
+<!-- Breadcrumb -->
+<div class="breadcrumb-bar">Inicio / <span>Planes de Capacitación</span></div>
 
-<div class="card">
-    <div class="card-body">
+<!-- Header panel -->
+<div class="pf-panel">
+    <div class="pf-panel-header" style="text-align: left; display: flex; align-items: center; justify-content: space-between;">
+        <span><i class="pi pi-calendar" style="margin-right: 6px;"></i> PLANES DE CAPACITACIÓN</span>
+        <button class="pf-btn pf-btn-success" onclick="openModal('modalNuevoPlan')" style="font-size: 0.78rem; padding: 0.3rem 0.9rem;">
+            <i class="pi pi-plus"></i> Nuevo Plan
+        </button>
+    </div>
+    <div class="pf-panel-content">
+        <div class="pf-infobox">
+            <i class="pi pi-info-circle"></i>
+            <div>
+                Solo puede existir <strong>un plan por año</strong>.
+                Tras crear el plan, se notificará por correo a todos los directores para que registren sus necesidades de capacitación (RN-01).
+            </div>
+        </div>
+
         {% if planes %}
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="pf-datatable">
                 <thead>
                     <tr>
                         <th>Año</th>
                         <th>Monto Referencial</th>
+                        <th>Monto Aprobado</th>
                         <th>Estado</th>
-                        <th>Temas</th>
-                        <th>Acciones</th>
+                        <th>Temas Registrados</th>
+                        <th>Temas Seleccionados</th>
+                        <th>Fecha Creación</th>
+                        <th style="width: 100px; text-align: center;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -31,23 +42,18 @@
                     <tr>
                         <td><strong>{{ plan.anio }}</strong></td>
                         <td>${{ "%.2f"|format(plan.monto_referencial) }}</td>
+                        <td>{% if plan.monto_aprobado %}<strong>${{ "%.2f"|format(plan.monto_aprobado) }}</strong>{% else %}<span class="text-muted-sm">—</span>{% endif %}</td>
                         <td>
-                            <span class="badge badge-estado estado-{{ plan.estado }}">
-                                {{ plan.estado.replace('_', ' ') }}
-                            </span>
+                            <span class="estado-badge estado-{{ plan.estado }}">{{ plan.estado.replace('_', ' ') }}</span>
                         </td>
                         <td>{{ plan.get_temas_count() }}</td>
-                        <td>
+                        <td>{{ plan.get_temas_seleccionados_count() }}</td>
+                        <td class="text-muted-sm">{{ plan.fecha_creacion.strftime('%d/%m/%Y') }}</td>
+                        <td style="text-align: center;">
                             <a href="{{ url_for('planes.detalle', plan_id=plan.id) }}"
-                               class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i> Ver
+                               class="pf-icon-btn pf-icon-btn-view" title="Ver Detalle">
+                                <i class="pi pi-eye"></i>
                             </a>
-                            {% if plan.estado == 'EN_APROBACION' and session.usuario_rol == 'DIRECTOR' %}
-                            <a href="{{ url_for('planes.aprobar_director', plan_id=plan.id) }}"
-                               class="btn btn-sm btn-success">
-                                <i class="bi bi-check"></i> Aprobar
-                            </a>
-                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -55,16 +61,75 @@
             </table>
         </div>
         {% else %}
-        <div class="text-center py-5">
-            <i class="bi bi-inbox display-1 text-muted"></i>
-            <p class="text-muted mt-3">No hay planes de capacitación registrados.</p>
-            {% if session.usuario_rol == 'ANALISTA' %}
-            <a href="{{ url_for('planes.nuevo') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Crear Primer Plan
-            </a>
-            {% endif %}
+        <div style="text-align: center; padding: 3rem 1rem; color: #888;">
+            <i class="pi pi-inbox" style="font-size: 3rem; display: block; margin-bottom: 1rem;"></i>
+            <p>No hay planes de capacitación registrados.</p>
+            <button class="pf-btn pf-btn-primary" onclick="openModal('modalNuevoPlan')">
+                <i class="pi pi-plus"></i> Crear Plan
+            </button>
         </div>
         {% endif %}
     </div>
 </div>
+
+<!-- ═══════════════ MODAL: NUEVO PLAN ═══════════════ -->
+<div class="pf-modal-overlay" id="modalNuevoPlan" style="display:none;">
+    <div class="pf-modal">
+        <div class="pf-modal-header">
+            <h5><i class="pi pi-plus-circle" style="margin-right: 8px;"></i> CREAR PLAN DE CAPACITACIÓN</h5>
+            <button class="pf-modal-close" onclick="closeModal('modalNuevoPlan')">×</button>
+        </div>
+        <form method="POST" action="{{ url_for('planes.nuevo') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="pf-modal-body">
+                <div class="pf-infobox">
+                    <i class="pi pi-info-circle"></i>
+                    <div>
+                        Al guardar el plan, se notificará por correo electrónico a todos los directores de área
+                        para que registren sus necesidades de capacitación para el período vigente.
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="pf-field">
+                            <label class="pf-label">Año del Plan <span>*</span></label>
+                            <input type="number" class="pf-input" name="anio"
+                                   value="{{ 2026 }}" min="2024" max="2035" required>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="pf-field">
+                            <label class="pf-label">Monto Referencial Asignado <span>*</span></label>
+                            <div class="pf-input-group">
+                                <div class="pf-input-prefix">$</div>
+                                <input type="number" class="pf-input" name="monto_referencial"
+                                       step="0.01" min="0" placeholder="50000.00" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalNuevoPlan')">
+                    <i class="pi pi-times"></i> Cancelar
+                </button>
+                <button type="submit" class="pf-btn pf-btn-success">
+                    <i class="pi pi-save"></i> Guardar Plan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('pf-modal-overlay')) { e.target.style.display = 'none'; }
+});
+</script>
 {% endblock %}

@@ -1,48 +1,67 @@
 {% extends "base.html" %}
-
-{% block title %}Revision Jefe de Personal - SIGEERN{% endblock %}
+{% block title %}Revisión de Planes — Jefe de Personal - SIGEERN{% endblock %}
 
 {% block content %}
-<h2 class="mb-4"><i class="bi bi-clipboard-check"></i> Planes en Revision</h2>
+<div class="breadcrumb-bar">Inicio / <span>Revisión del Plan de Capacitación</span></div>
 
-<div class="card">
-    <div class="card-body">
+<div class="pf-panel">
+    <div class="pf-panel-header" style="text-align: left;">
+        <i class="pi pi-check-square" style="margin-right: 6px;"></i>
+        REVISIÓN DEL PLAN ANUAL DE CAPACITACIÓN
+    </div>
+    <div class="pf-panel-content">
+        <div class="pf-infobox">
+            <i class="pi pi-info-circle"></i>
+            <div>
+                Revise el Plan Anual de Capacitación enviado por el Analista de Talento Humano.
+                Puede: <strong>agregar observaciones</strong>, <strong>aprobar el plan</strong> (enviarlo al Director de TH)
+                o <strong>devolverlo</strong> al Analista indicando las correcciones requeridas.
+            </div>
+        </div>
+
         {% if planes %}
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="pf-datatable">
                 <thead>
                     <tr>
-                        <th>Anio</th>
-                        <th>Direccion</th>
-                        <th>Fecha Envio</th>
-                        <th>Acciones</th>
+                        <th>Año</th>
+                        <th>Monto Referencial</th>
+                        <th>Temas Seleccionados</th>
+                        <th>Estado</th>
+                        <th>Fecha Envío</th>
+                        <th style="text-align: center; width: 280px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for plan in planes %}
                     <tr>
-                        <td>{{ plan.anio }}</td>
-                        <td>{{ plan.direccion.nombre if plan.direccion else '' }}</td>
-                        <td>{{ plan.fecha_envio_jefe }}</td>
+                        <td><strong>{{ plan.anio }}</strong></td>
+                        <td>${{ "%.2f"|format(plan.monto_referencial) }}</td>
+                        <td>{{ plan.get_temas_seleccionados_count() }}</td>
                         <td>
-                            <a href="{{ url_for('revision.ver_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i>
+                            <span class="estado-badge estado-{{ plan.estado }}">{{ plan.estado.replace('_', ' ') }}</span>
+                        </td>
+                        <td class="text-muted-sm">
+                            {{ plan.fecha_envio_jefe.strftime('%d/%m/%Y %H:%M') if plan.fecha_envio_jefe else '—' }}
+                        </td>
+                        <td style="text-align: center; white-space: nowrap;">
+                            <!-- Ver Plan -->
+                            <a href="{{ url_for('revision.ver_plan', plan_id=plan.id) }}"
+                               class="pf-btn pf-btn-outlined" style="padding: 0.3rem 0.7rem; font-size: 0.78rem;">
+                                <i class="pi pi-eye"></i> Ver Plan
                             </a>
-                            <form action="{{ url_for('planes.aprobar_jefe', plan_id=plan.id) }}" method="POST" style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="action" value="aprobar">
-                                <button type="submit" class="btn btn-sm btn-success">
-                                    <i class="bi bi-check"></i>
-                                </button>
-                            </form>
-                            <form action="{{ url_for('planes.aprobar_jefe', plan_id=plan.id) }}" method="POST" style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="action" value="devolver">
-                                <input type="text" name="observacion_devolucion" class="form-control form-control-sm" placeholder="Motivo" style="width: 180px; display:inline-block;">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-arrow-return-left"></i>
-                                </button>
-                            </form>
+
+                            <!-- Aprobar -->
+                            <button class="pf-btn pf-btn-success" style="padding: 0.3rem 0.7rem; font-size: 0.78rem;"
+                                    onclick="abrirAprobar({{ plan.id }}, {{ plan.anio }})">
+                                <i class="pi pi-check"></i> Aprobar
+                            </button>
+
+                            <!-- Devolver -->
+                            <button class="pf-btn pf-btn-outlined-danger" style="padding: 0.3rem 0.7rem; font-size: 0.78rem;"
+                                    onclick="abrirDevolver({{ plan.id }}, {{ plan.anio }})">
+                                <i class="pi pi-undo"></i> Devolver
+                            </button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -50,8 +69,94 @@
             </table>
         </div>
         {% else %}
-        <p class="text-muted">No hay planes en revision.</p>
+        <div style="text-align: center; padding: 3rem; color: #888;">
+            <i class="pi pi-check-circle" style="font-size: 3rem; display: block; margin-bottom: 1rem; color: #ccc;"></i>
+            <p>No hay planes pendientes de revisión en este momento.</p>
+        </div>
         {% endif %}
     </div>
 </div>
+
+<!-- ═══════════════ MODAL: APROBAR PLAN ═══════════════ -->
+<div class="pf-modal-overlay" id="modalAprobar" style="display:none;">
+    <div class="pf-modal">
+        <div class="pf-modal-header" style="background: #166534;">
+            <h5><i class="pi pi-check-circle" style="margin-right: 8px;"></i> APROBAR PLAN DE CAPACITACIÓN</h5>
+            <button class="pf-modal-close" onclick="closeModal('modalAprobar')">×</button>
+        </div>
+        <form method="POST" id="formAprobar" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="aprobar">
+            <div class="pf-modal-body">
+                <div class="pf-infobox" style="background: #d1e7dd; border-color: #a3cfbb; color: #0a3622;">
+                    <i class="pi pi-info-circle"></i>
+                    <div>¿Confirma que desea aprobar el plan <strong id="labelAprobar"></strong> y enviarlo al Director de Talento Humano?</div>
+                </div>
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalAprobar')">
+                    <i class="pi pi-times"></i> Cancelar
+                </button>
+                <button type="submit" class="pf-btn pf-btn-success">
+                    <i class="pi pi-check"></i> Confirmar Aprobación
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════ MODAL: DEVOLVER PLAN ═══════════════ -->
+<div class="pf-modal-overlay" id="modalDevolver" style="display:none;">
+    <div class="pf-modal">
+        <div class="pf-modal-header" style="background: #991b1b;">
+            <h5><i class="pi pi-undo" style="margin-right: 8px;"></i> DEVOLVER PLAN PARA CORRECCIÓN</h5>
+            <button class="pf-modal-close" onclick="closeModal('modalDevolver')">×</button>
+        </div>
+        <form method="POST" id="formDevolver" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="devolver">
+            <div class="pf-modal-body">
+                <div class="pf-dangerbox" style="margin-bottom: 1rem;">
+                    <i class="pi pi-exclamation-triangle"></i>
+                    <div>
+                        Al devolver, el plan regresará al estado <strong>"En Corrección"</strong> y el Analista de Talento
+                        Humano deberá realizar los ajustes necesarios antes de reenviarlo.
+                    </div>
+                </div>
+
+                <p style="font-size: 0.875rem;">Plan seleccionado: <strong id="labelDevolver"></strong></p>
+
+                <div class="pf-field">
+                    <label class="pf-label">Motivo de la Devolución <span>*</span></label>
+                    <textarea class="pf-textarea" name="observacion" required
+                              placeholder="Describa detalladamente las correcciones requeridas..."></textarea>
+                </div>
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalDevolver')">
+                    <i class="pi pi-times"></i> Cancelar
+                </button>
+                <button type="submit" class="pf-btn pf-btn-danger">
+                    <i class="pi pi-undo"></i> Confirmar Devolución
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function abrirAprobar(planId, anio) {
+    document.getElementById('formAprobar').action = '/planes/' + planId + '/accion-jefe';
+    document.getElementById('labelAprobar').textContent = 'Plan de Capacitación ' + anio;
+    openModal('modalAprobar');
+}
+function abrirDevolver(planId, anio) {
+    document.getElementById('formDevolver').action = '/planes/' + planId + '/accion-jefe';
+    document.getElementById('labelDevolver').textContent = 'Plan de Capacitación ' + anio;
+    openModal('modalDevolver');
+}
+</script>
 {% endblock %}

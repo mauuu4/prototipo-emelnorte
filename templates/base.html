@@ -3,170 +3,619 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}SIGEERN - Capacitación{% endblock %}</title>
+    <title>{% block title %}SIGEERN - Gestión de Capacitación{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/primeicons@6.0.1/primeicons.css" rel="stylesheet">
     <style>
         :root {
-            --emelnorte-primary: #1a5276;
-            --emelnorte-secondary: #2980b9;
-            --emelnorte-accent: #f39c12;
+            --sidebar-bg: #29388b;
+            --sidebar-hover: #3a4da0;
+            --sidebar-active: #4a5ec0;
+            --primary: #1a73e8;
+            --primary-dark: #1557b0;
+            --surface: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #495057;
+            --border: #dee2e6;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #f59e0b;
+            --info: #17a2b8;
         }
+
+        * { box-sizing: border-box; }
+
         body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--surface);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            color: var(--text);
+            margin: 0; padding: 0;
+            display: flex;
+            min-height: 100vh;
+            font-size: 0.9rem;
         }
-        .navbar-emelnorte {
-            background: linear-gradient(135deg, var(--emelnorte-primary), var(--emelnorte-secondary));
+
+        /* ─── SIDEBAR ─── */
+        .layout-sidebar {
+            width: 248px;
+            min-width: 248px;
+            background: var(--sidebar-bg);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.15);
         }
-        .navbar-emelnorte .navbar-brand, .navbar-emelnorte .nav-link {
-            color: white !important;
+
+        .sidebar-logo {
+            padding: 1.25rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            text-decoration: none;
+            color: #fff;
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 1px;
         }
-        .card-header {
-            background: linear-gradient(135deg, var(--emelnorte-primary), var(--emelnorte-secondary));
-            color: white;
+        .sidebar-logo .logo-icon {
+            width: 32px; height: 32px;
+            background: #fff;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
         }
-        .btn-primary {
-            background-color: var(--emelnorte-primary);
-            border-color: var(--emelnorte-primary);
+        .sidebar-logo .logo-icon i { color: var(--sidebar-bg); font-size: 1rem; }
+
+        .menu-section {
+            padding: 1.2rem 0.8rem 0.3rem 1rem;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255,255,255,0.5);
+            font-weight: 600;
         }
-        .btn-primary:hover {
-            background-color: var(--emelnorte-secondary);
-            border-color: var(--emelnorte-secondary);
+
+        .sidebar-menu { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.7rem 1rem;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: background 0.18s;
+            border-left: 3px solid transparent;
         }
-        .btn-accent {
-            background-color: var(--emelnorte-accent);
-            border-color: var(--emelnorte-accent);
-            color: white;
+        .sidebar-menu li a i { font-size: 0.78rem; width: 16px; text-align: center; }
+        .sidebar-menu li a:hover {
+            background: var(--sidebar-hover);
+            color: #fff;
         }
-        .badge-estado {
-            font-size: 0.85rem;
-            padding: 0.4em 0.8em;
+        .sidebar-menu li a.active {
+            background: var(--sidebar-active);
+            color: #fff;
+            border-left-color: #fff;
         }
-        .estado-BORRADOR { background-color: #6c757d; }
-        .estado-EN_REVISION { background-color: #ffc107; color: #000; }
-        .estado-EN_CORRECCION { background-color: #fd7e14; }
-        .estado-EN_APROBACION { background-color: #0dcaf0; color: #000; }
-        .estado-APROBADO { background-color: #198754; }
-        .alerta-presupuesto {
-            background-color: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 0.25rem;
-            padding: 1rem;
+
+        .sidebar-footer {
+            border-top: 1px solid rgba(255,255,255,0.12);
+            padding: 0.5rem 0;
+        }
+
+        /* ─── TOPBAR ─── */
+        .layout-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        .layout-topbar {
+            height: 58px;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            justify-content: space-between;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .topbar-brand {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-size: 1.05rem; font-weight: 500; color: #333;
+        }
+        .topbar-brand em {
+            font-style: italic; font-weight: 800;
+            color: var(--sidebar-bg); font-size: 1.2rem; margin-right: 4px;
+        }
+        .topbar-right { display: flex; align-items: center; gap: 1rem; }
+        .user-chip {
+            display: flex; align-items: center; gap: 8px;
+            background: #f1f3f9; border-radius: 20px;
+            padding: 5px 12px 5px 6px;
+            font-size: 0.82rem; font-weight: 500; color: #444;
+        }
+        .user-chip .avatar {
+            width: 28px; height: 28px;
+            background: var(--sidebar-bg);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .user-chip .avatar i { color: #fff; font-size: 0.75rem; }
+
+        .rol-badge {
+            font-size: 0.68rem; padding: 2px 7px;
+            border-radius: 10px; font-weight: 600; text-transform: uppercase;
+        }
+        .rol-ANALISTA { background: #dbeafe; color: #1d4ed8; }
+        .rol-DIRECTOR { background: #dcfce7; color: #166534; }
+        .rol-JEFE_PERSONAL { background: #fef3c7; color: #92400e; }
+        .rol-PRESIDENTE { background: #fce7f3; color: #9d174d; }
+
+        /* ─── CONTENT ─── */
+        .layout-content {
+            flex: 1;
+            padding: 1.5rem;
+            background: var(--surface);
+        }
+
+        .breadcrumb-bar {
+            font-size: 0.8rem; color: #888;
+            margin-bottom: 1.2rem;
+        }
+        .breadcrumb-bar span { color: #555; }
+
+        /* ─── PF PANEL ─── */
+        .pf-panel {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 1.2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .pf-panel-header {
+            background: var(--primary);
+            color: #fff;
+            padding: 0.65rem 1rem;
+            font-weight: 600;
+            font-size: 0.88rem;
+            border-radius: 3px 3px 0 0;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .pf-panel-content { padding: 1rem; }
+
+        /* ─── INFO BOX ─── */
+        .pf-infobox {
+            background: #dbeafe;
+            border: 1px solid #bfdbfe;
+            border-radius: 3px;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            color: #1e40af;
+            display: flex; gap: 8px; align-items: flex-start;
             margin-bottom: 1rem;
         }
-        .table-hover tbody tr:hover {
-            background-color: rgba(26, 82, 118, 0.05);
+        .pf-infobox i { margin-top: 2px; flex-shrink: 0; }
+
+        .pf-warningbox {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            border-radius: 3px;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            color: #92400e;
+            display: flex; gap: 8px; align-items: flex-start;
+            margin-bottom: 1rem;
         }
-        .card-counter {
-            border: none;
+
+        .pf-dangerbox {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            border-radius: 3px;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            color: #991b1b;
+            display: flex; gap: 8px; align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        /* ─── PF BUTTONS ─── */
+        .pf-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 0.42rem 1rem;
+            font-size: 0.875rem; font-weight: 500;
+            border-radius: 3px; border: 1px solid transparent;
+            cursor: pointer; text-decoration: none !important;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+        .pf-btn i { font-size: 0.78rem; }
+
+        .pf-btn-primary {
+            background: var(--primary); color: #fff; border-color: var(--primary);
+        }
+        .pf-btn-primary:hover { background: var(--primary-dark); color: #fff; border-color: var(--primary-dark); }
+
+        .pf-btn-success {
+            background: var(--success); color: #fff; border-color: var(--success);
+        }
+        .pf-btn-success:hover { background: #218838; color: #fff; }
+
+        .pf-btn-danger {
+            background: var(--danger); color: #fff; border-color: var(--danger);
+        }
+        .pf-btn-danger:hover { background: #c82333; color: #fff; }
+
+        .pf-btn-warning {
+            background: var(--warning); color: #fff; border-color: var(--warning);
+        }
+        .pf-btn-warning:hover { background: #d97706; color: #fff; }
+
+        .pf-btn-secondary {
+            background: #6c757d; color: #fff; border-color: #6c757d;
+        }
+        .pf-btn-secondary:hover { background: #5a6268; color: #fff; }
+
+        .pf-btn-outlined {
+            background: transparent; color: var(--primary); border-color: var(--primary);
+        }
+        .pf-btn-outlined:hover { background: rgba(26,115,232,0.06); color: var(--primary); }
+
+        .pf-btn-outlined-danger {
+            background: #fff; color: var(--danger); border-color: var(--danger);
+        }
+        .pf-btn-outlined-danger:hover { background: rgba(220,53,69,0.06); }
+
+        /* Action icon buttons */
+        .pf-icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 22px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
+            border: 1px solid transparent;
+            cursor: pointer; transition: all 0.18s;
+            text-decoration: none !important;
+            font-size: 0;
         }
-        .card-counter:hover {
-            transform: translateY(-5px);
+        .pf-icon-btn i { font-size: 0.72rem; }
+        .pf-icon-btn-view { background: var(--success); color: #fff; border-color: var(--success); }
+        .pf-icon-btn-view:hover { background: #218838; color: #fff; }
+        .pf-icon-btn-edit { background: #fff; color: var(--primary); border-color: var(--primary); }
+        .pf-icon-btn-edit:hover { background: rgba(26,115,232,0.06); }
+        .pf-icon-btn-delete { background: #fff; color: var(--danger); border-color: var(--danger); }
+        .pf-icon-btn-delete:hover { background: rgba(220,53,69,0.06); }
+        .pf-icon-btn-check { background: var(--success); color: #fff; border-color: var(--success); }
+        .pf-icon-btn-check:hover { background: #218838; color: #fff; }
+        .pf-icon-btn-uncheck { background: #fff; color: #6c757d; border-color: #6c757d; }
+        .pf-icon-btn-uncheck:hover { background: rgba(108,117,125,0.06); }
+
+        /* ─── PF DATATABLE ─── */
+        .pf-datatable {
+            width: 100%; border-collapse: collapse;
+            font-size: 0.875rem; color: var(--text);
+            background: #fff;
         }
-        .footer {
-            background-color: var(--emelnorte-primary);
-            color: white;
-            padding: 1rem 0;
-            margin-top: 3rem;
+        .pf-datatable thead th {
+            background: #f8f9fa;
+            border-bottom: 2px solid var(--border);
+            padding: 0.75rem 0.9rem;
+            font-weight: 600; font-size: 0.82rem;
+            color: #555; text-align: left;
+            white-space: nowrap;
         }
+        .pf-datatable tbody td {
+            padding: 0.7rem 0.9rem;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+        .pf-datatable tbody tr:hover { background: #f8f9fa; }
+        .pf-datatable tbody tr:last-child td { border-bottom: none; }
+
+        /* ─── BADGES ─── */
+        .estado-badge {
+            display: inline-block;
+            font-size: 0.72rem; font-weight: 700;
+            padding: 3px 9px; border-radius: 2px;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .estado-BORRADOR { background: #e9ecef; color: #495057; border: 1px solid #ced4da; }
+        .estado-EN_REVISION { background: #cfe2ff; color: #084298; border: 1px solid #b6d4fe; }
+        .estado-EN_CORRECCION { background: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
+        .estado-EN_APROBACION { background: #fce8b2; color: #7b4c00; border: 1px solid #f9c74f; }
+        .estado-APROBADO { background: #d1e7dd; color: #0a3622; border: 1px solid #a3cfbb; }
+
+        /* ─── TOASTS ─── */
+        .toast-container {
+            position: fixed; top: 68px; right: 18px;
+            z-index: 9999; width: 320px;
+        }
+        .pf-toast {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 10px 14px; margin-bottom: 8px;
+            border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 0.875rem; animation: slideIn 0.3s ease;
+        }
+        .pf-toast-success { background: #d1e7dd; border-left: 4px solid #198754; color: #0a3622; }
+        .pf-toast-danger  { background: #f8d7da; border-left: 4px solid #dc3545; color: #58151c; }
+        .pf-toast-warning { background: #fff3cd; border-left: 4px solid #ffc107; color: #664d03; }
+        .pf-toast-info    { background: #cff4fc; border-left: 4px solid #0dcaf0; color: #055160; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* ─── MODALS ─── */
+        .pf-modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 8000;
+            align-items: center; justify-content: center;
+        }
+        .pf-modal-overlay.active { display: flex; }
+
+        .pf-modal {
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            width: 100%; max-width: 580px;
+            max-height: 92vh;
+            display: flex; flex-direction: column;
+            animation: modalIn 0.22s ease;
+        }
+        .pf-modal-lg { max-width: 780px; }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        .pf-modal-header {
+            background: var(--sidebar-bg);
+            color: #fff;
+            padding: 0.85rem 1.2rem;
+            display: flex; align-items: center; justify-content: space-between;
+            border-radius: 4px 4px 0 0;
+        }
+        .pf-modal-header h5 {
+            margin: 0; font-size: 0.95rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .pf-modal-close {
+            background: none; border: none; color: rgba(255,255,255,0.7);
+            font-size: 1.2rem; cursor: pointer; padding: 0;
+            transition: color 0.15s;
+        }
+        .pf-modal-close:hover { color: #fff; }
+
+        .pf-modal-body {
+            padding: 1.2rem; overflow-y: auto;
+        }
+
+        .pf-modal-footer {
+            padding: 0.85rem 1.2rem;
+            border-top: 1px solid var(--border);
+            display: flex; justify-content: flex-end; gap: 8px;
+        }
+
+        /* ─── FORM ─── */
+        .pf-field { margin-bottom: 1rem; }
+        .pf-label {
+            display: block; font-size: 0.82rem; font-weight: 600;
+            margin-bottom: 4px; color: #444;
+        }
+        .pf-label span { color: #dc3545; }
+        .pf-input, .pf-select, .pf-textarea {
+            width: 100%; padding: 0.42rem 0.75rem;
+            font-size: 0.875rem; color: var(--text);
+            border: 1px solid #ced4da; border-radius: 3px;
+            background: #fff; transition: border-color 0.18s, box-shadow 0.18s;
+        }
+        .pf-input:focus, .pf-select:focus, .pf-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
+        }
+        .pf-textarea { resize: vertical; min-height: 80px; }
+        .pf-input-group { display: flex; }
+        .pf-input-group .pf-input-prefix {
+            background: #e9ecef; border: 1px solid #ced4da; border-right: none;
+            border-radius: 3px 0 0 3px; padding: 0.42rem 0.6rem;
+            font-size: 0.875rem; color: #555; display: flex; align-items: center;
+        }
+        .pf-input-group .pf-input { border-radius: 0 3px 3px 0; }
+
+        /* ─── STATS CARDS ─── */
+        .stat-card {
+            background: #fff; border: 1px solid var(--border);
+            border-radius: 6px; padding: 1.2rem 1rem;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .stat-card .stat-value {
+            font-size: 1.9rem; font-weight: 700; color: var(--primary);
+            line-height: 1;
+        }
+        .stat-card .stat-label {
+            font-size: 0.78rem; color: #888; margin-top: 4px;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+
+        /* ─── FOOTER ─── */
+        .layout-footer {
+            text-align: right; padding: 0.8rem 1.5rem;
+            font-size: 0.78rem; color: #aaa;
+            background: #fff; border-top: 1px solid var(--border);
+        }
+
+        /* ─── UTILITY ─── */
+        .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+        .text-muted-sm { font-size: 0.78rem; color: #999; }
+        .dir-badge {
+            display: inline-block; font-size: 0.7rem; font-weight: 700;
+            padding: 1px 6px; border-radius: 2px;
+            background: #e0e7ff; color: #3730a3;
+        }
+        .obs-card {
+            border-left: 3px solid var(--border);
+            padding: 0.5rem 0.75rem; margin-bottom: 0.6rem;
+            font-size: 0.85rem;
+        }
+        .obs-APROBACION { border-color: var(--success); }
+        .obs-DEVOLUCION { border-color: var(--danger); }
+        .obs-OBSERVACION { border-color: var(--warning); }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    {% if session.get('usuario_id') %}
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-emelnorte">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('auth.dashboard') }}">
-                <i class="bi bi-building"></i> SIGEERN - Capacitación
+
+{% if session.get('usuario_id') %}
+<!-- SIDEBAR -->
+<aside class="layout-sidebar">
+    <a href="{{ url_for('auth.dashboard') }}" class="sidebar-logo">
+        <div class="logo-icon"><i class="pi pi-bolt"></i></div>
+        SIGEERN
+    </a>
+
+    <ul class="sidebar-menu">
+        <li class="menu-section">Menú Principal</li>
+        <li>
+            <a href="{{ url_for('auth.dashboard') }}"
+               class="{% if request.endpoint == 'auth.dashboard' %}active{% endif %}">
+                <i class="pi pi-home"></i> Inicio
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    {% if session.usuario_rol == 'ANALISTA' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('planes.lista') }}">
-                            <i class="bi bi-calendar-check"></i> Planes
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('ejecucion.lista') }}">
-                            <i class="bi bi-play-circle"></i> Ejecución
-                        </a>
-                    </li>
-                    {% elif session.usuario_rol == 'DIRECTOR' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('necesidades.lista') }}">
-                            <i class="bi bi-plus-circle"></i> Mis Necesidades
-                        </a>
-                    </li>
-                    {% elif session.usuario_rol == 'JEFE_PERSONAL' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('revision.lista_jefe') }}">
-                            <i class="bi bi-clipboard-check"></i> Revisar Planes
-                        </a>
-                    </li>
-                    {% elif session.usuario_rol == 'PRESIDENTE' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('revision.lista_presidente') }}">
-                            <i class="bi bi-check-circle"></i> Aprobar Planes
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> {{ session.usuario_nombre }}
-                            <span class="badge bg-light text-dark">{{ session.usuario_rol }}</span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{{ url_for('auth.cambiar_usuario') }}">
-                                <i class="bi bi-arrow-left-right"></i> Cambiar Usuario
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
-                                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
-                            </a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
+        </li>
+
+        {# ─── ANALISTA: Plan + Temas ─── #}
+        {% if session.usuario_rol == 'ANALISTA' %}
+        <li class="menu-section">Plan de Capacitación</li>
+        <li>
+            <a href="{{ url_for('planes.lista') }}"
+               class="{% if request.endpoint and request.endpoint.startswith('planes') %}active{% endif %}">
+                <i class="pi pi-calendar"></i> Planes de Capacitación
+            </a>
+        </li>
+        <li class="menu-section">Ejecución</li>
+        <li>
+            <a href="{{ url_for('ejecucion.lista') }}"
+               class="{% if request.endpoint and request.endpoint.startswith('ejecucion') %}active{% endif %}">
+                <i class="pi pi-play-circle"></i> Capacitaciones Ejecutadas
+            </a>
+        </li>
+
+        {# ─── DIRECTOR DE ÁREA: Solo Necesidades ─── #}
+        {% elif session.usuario_rol == 'DIRECTOR' and not session.get('es_director_th') %}
+        <li class="menu-section">Mis Necesidades</li>
+        <li>
+            <a href="{{ url_for('necesidades.lista') }}"
+               class="{% if request.endpoint and request.endpoint.startswith('necesidades') %}active{% endif %}">
+                <i class="pi pi-list"></i> Necesidades de Capacitación
+            </a>
+        </li>
+
+        {# ─── DIRECTOR DE TH: Revisar y Enviar al Presidente ─── #}
+        {% elif session.usuario_rol == 'DIRECTOR' and session.get('es_director_th') %}
+        <li class="menu-section">Revisión del Plan</li>
+        <li>
+            <a href="{{ url_for('revision.lista_director') }}"
+               class="{% if request.endpoint == 'revision.lista_director' %}active{% endif %}">
+                <i class="pi pi-send"></i> Revisión del Plan
+            </a>
+        </li>
+
+        {# ─── JEFE DE PERSONAL ─── #}
+        {% elif session.usuario_rol == 'JEFE_PERSONAL' %}
+        <li class="menu-section">Revisión</li>
+        <li>
+            <a href="{{ url_for('revision.lista_jefe') }}"
+               class="{% if request.endpoint == 'revision.lista_jefe' %}active{% endif %}">
+                <i class="pi pi-check-square"></i> Revisar Planes
+            </a>
+        </li>
+
+        {# ─── PRESIDENTE ─── #}
+        {% elif session.usuario_rol == 'PRESIDENTE' %}
+        <li class="menu-section">Aprobación</li>
+        <li>
+            <a href="{{ url_for('revision.lista_presidente') }}"
+               class="{% if request.endpoint == 'revision.lista_presidente' %}active{% endif %}">
+                <i class="pi pi-verified"></i> Aprobación Final
+            </a>
+        </li>
+        {% endif %}
+
+        <li class="menu-section">Opciones</li>
+        <li>
+            <a href="{{ url_for('auth.cambiar_usuario') }}">
+                <i class="pi pi-refresh"></i> Cambiar Usuario
+            </a>
+        </li>
+        <li>
+            <a href="{{ url_for('auth.logout') }}">
+                <i class="pi pi-power-off"></i> Cerrar Sesión
+            </a>
+        </li>
+    </ul>
+</aside>
+{% endif %}
+
+<!-- MAIN -->
+<div class="layout-main">
+    {% if session.get('usuario_id') %}
+    <header class="layout-topbar">
+        <div class="topbar-brand">
+            <em>EmelNorte</em> Planificación de Recursos Empresariales
         </div>
-    </nav>
+        <div class="topbar-right">
+            <div class="user-chip">
+                <div class="avatar"><i class="pi pi-user"></i></div>
+                <span>{{ session.usuario_nombre | upper }}</span>
+                <span class="rol-badge rol-{{ session.usuario_rol }}">{{ session.usuario_rol.replace('_', ' ') }}</span>
+            </div>
+            <a href="#" style="color:#aaa; font-size:1.1rem;"><i class="pi pi-bars"></i></a>
+        </div>
+    </header>
     {% endif %}
 
-    <main class="container py-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+    <div class="layout-content">
+        <!-- Toast Messages -->
+        <div class="toast-container" id="toastContainer">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="pf-toast pf-toast-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' if category == 'warning' else 'info' }}">
+                        <i class="pi {% if category == 'success' %}pi-check-circle{% elif category == 'danger' %}pi-times-circle{% elif category == 'warning' %}pi-exclamation-triangle{% else %}pi-info-circle{% endif %}"></i>
+                        <div>{{ message }}</div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
 
         {% block content %}{% endblock %}
-    </main>
+    </div>
 
-    <footer class="footer text-center">
-        <div class="container">
-            <p class="mb-0">
-                <i class="bi bi-lightning-charge"></i> EMELNORTE S.A. - Sistema Integrado de Gestión
-                <br>
-                <small>Módulo de Gestión de Capacitación - Prototipo v1.0</small>
-            </p>
-        </div>
+    <footer class="layout-footer">
+        © Dirección de Tecnologías de la Información y Comunicación - 2026
     </footer>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    {% block extra_js %}{% endblock %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Auto-dismiss toasts
+    setTimeout(function() {
+        document.querySelectorAll('.pf-toast').forEach(function(t) {
+            t.style.opacity = '0';
+            t.style.transition = 'opacity 0.4s';
+            setTimeout(() => t.remove(), 400);
+        });
+    }, 5000);
+
+    // Modal helpers
+    function openModal(id) {
+        document.getElementById(id).style.display = 'flex';
+    }
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+    // Close on backdrop click
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('pf-modal-overlay')) {
+            e.target.style.display = 'none';
+        }
+    });
+</script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>

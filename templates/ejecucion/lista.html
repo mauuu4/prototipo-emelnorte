@@ -1,43 +1,77 @@
 {% extends "base.html" %}
-
-{% block title %}Ejecucion de Capacitaciones - SIGEERN{% endblock %}
+{% block title %}Ejecución de Capacitaciones - SIGEERN{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-play-circle"></i> Ejecucion</h2>
-    <a href="{{ url_for('ejecucion.nuevo') }}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Nueva Ejecucion
-    </a>
-</div>
+<div class="breadcrumb-bar">Inicio / <span>Ejecución de Capacitaciones</span></div>
 
-<div class="card">
-    <div class="card-body">
-        {% if capacitaciones %}
+<div class="pf-panel">
+    <div class="pf-panel-header" style="text-align:left; display:flex; align-items:center; justify-content:space-between;">
+        <span><i class="pi pi-play-circle" style="margin-right:6px;"></i>EJECUCIÓN DE CAPACITACIONES {% if anio_actual %}(Plan {{ anio_actual }}){% endif %}</span>
+        
+        <!-- Year filter -->
+        {% if planes %}
+        <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:0.85rem; color:#fff;">Año del Plan:</span>
+            <select class="pf-select" style="width:120px; padding:0.2rem 0.5rem; font-size:0.9rem; color:#0f172a;" onchange="window.location.href='?anio='+this.value">
+                {% for p in planes %}
+                <option value="{{ p.anio }}" {% if p.anio == anio_actual %}selected{% endif %}>{{ p.anio }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+    </div>
+    <div class="pf-panel-content">
+        <div class="pf-infobox" style="margin-bottom:1rem;">
+            <i class="pi pi-info-circle"></i>
+            <div>Panel general de ejecución. Aquí puede ver todos los temas aprobados del plan seleccionado y registrar su ejecución.</div>
+        </div>
+
+        {% if temas %}
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="pf-datatable">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Tema</th>
-                        <th>Fechas</th>
-                        <th>Horas</th>
-                        <th>Acciones</th>
+                        <th style="width:30px;">#</th>
+                        <th>Tema de Capacitación</th>
+                        <th>Dirección</th>
+                        <th>Mes Previsto</th>
+                        <th>Estado</th>
+                        <th style="text-align:center;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for c in capacitaciones %}
+                    {% for ts in temas %}
                     <tr>
-                        <td>{{ c.id }}</td>
-                        <td>{{ c.tema_seleccionado.tema.nombre if c.tema_seleccionado and c.tema_seleccionado.tema else '' }}</td>
-                        <td>{{ c.fecha_inicio }} - {{ c.fecha_fin }}</td>
-                        <td>{{ c.duracion_horas }}</td>
+                        <td class="text-muted-sm">{{ loop.index }}</td>
                         <td>
-                            <a href="{{ url_for('ejecucion.detalle', capacitacion_id=c.id) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <a href="{{ url_for('ejecucion.participantes', capacitacion_id=c.id) }}" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-people"></i>
-                            </a>
+                            <strong>{{ ts.tema.nombre }}</strong>
+                            <div class="text-muted-sm" style="font-size:0.75rem;">Presupuesto Aprobado: ${{ "%.2f"|format(ts.presupuesto_aprobado) }}</div>
+                        </td>
+                        <td style="font-size:0.82rem;">{{ ts.tema.get_direccion_nombre() }}</td>
+                        <td class="text-muted-sm">{{ ts.tema.get_nombre_mes() }}</td>
+                        <td>
+                            {% if ts.capacitacion_ejecutada %}
+                                <span class="pf-badge pf-badge-success">Ejecutado</span>
+                            {% else %}
+                                <span class="pf-badge pf-badge-warning">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align:center; white-space:nowrap;">
+                            {% if ts.capacitacion_ejecutada %}
+                                {% set cap = ts.capacitacion_ejecutada[0] %}
+                                <a href="{{ url_for('ejecucion.participantes', capacitacion_id=cap.id) }}"
+                                   class="pf-icon-btn pf-icon-btn-edit" title="Gestionar Participantes">
+                                    <i class="pi pi-users"></i>
+                                </a>
+                                <a href="{{ url_for('ejecucion.detalle', capacitacion_id=cap.id) }}"
+                                   class="pf-icon-btn" title="Ver Detalle" style="background:#f0f9ff; color:#0369a1;">
+                                    <i class="pi pi-eye"></i>
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('ejecucion.nuevo', tema_id=ts.id) }}" class="pf-btn pf-btn-success" style="font-size:0.75rem; padding:0.2rem 0.6rem;">
+                                    <i class="pi pi-play"></i> Ejecutar
+                                </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -45,9 +79,9 @@
             </table>
         </div>
         {% else %}
-        <div class="text-center py-5">
-            <i class="bi bi-inbox display-1 text-muted"></i>
-            <p class="text-muted mt-3">No hay ejecuciones registradas.</p>
+        <div style="text-align:center; padding:3rem 1rem; color:#aaa;">
+            <i class="pi pi-folder-open" style="font-size:3rem; display:block; margin-bottom:1rem;"></i>
+            <p style="font-size:0.9rem; color:#888;">No hay temas seleccionados para este año.</p>
         </div>
         {% endif %}
     </div>
