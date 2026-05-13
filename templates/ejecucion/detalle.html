@@ -17,15 +17,20 @@
             <div class="col-md-8">
                 <h5 style="margin:0 0 1rem; color:var(--primary); font-size:1rem;">{{ capacitacion.get_nombre_tema() }}</h5>
                 <div class="row g-2" style="font-size:0.875rem;">
-                    <div class="col-md-6"><span class="text-muted-sm">Empresa Capacitadora:</span><br><strong>{{ capacitacion.empresa_capacitadora or '—' }}</strong></div>
+                    <div class="col-md-6"><span class="text-muted-sm">Empresa Capacitadora:</span><br>
+                        {% if capacitacion.empresa %}
+                            <i class="pi pi-briefcase" style="font-size:0.8rem; margin-right:4px;"></i> <strong>{{ capacitacion.empresa.razon_social }}</strong>
+                        {% else %}
+                            <strong>—</strong>
+                        {% endif %}
+                    </div>
                     <div class="col-md-6"><span class="text-muted-sm">Tipo de Certificación:</span><br><strong>{{ capacitacion.tipo_certificacion or '—' }}</strong></div>
                     <div class="col-md-3"><span class="text-muted-sm">Fecha Inicio:</span><br>{{ capacitacion.fecha_inicio.strftime('%d/%m/%Y') }}</div>
                     <div class="col-md-3"><span class="text-muted-sm">Fecha Fin:</span><br>{{ capacitacion.fecha_fin.strftime('%d/%m/%Y') }}</div>
                     <div class="col-md-3"><span class="text-muted-sm">Duración:</span><br>{{ capacitacion.duracion_horas }}h</div>
                     <div class="col-md-3"><span class="text-muted-sm">Proceso Contrat.:</span><br>{{ capacitacion.proceso_contratacion or '—' }}</div>
                     <div class="col-md-3"><span class="text-muted-sm">Centro de Costo:</span><br>{{ capacitacion.centro_costo or '—' }}</div>
-                    <div class="col-md-3"><span class="text-muted-sm">Etapa Funcional:</span><br>{{ capacitacion.etapa_funcional or '—' }}</div>
-                    <div class="col-md-6"><span class="text-muted-sm">Subetapa Funcional:</span><br>{{ capacitacion.subetapa_funcional or '—' }}</div>
+
                 </div>
             </div>
             <div class="col-md-4">

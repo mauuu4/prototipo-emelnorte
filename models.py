@@ -167,8 +167,6 @@ class TemaCapacitacion(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(200), nullable=False)
-    etapa_funcional = db.Column(db.String(100), nullable=False)
-    subetapa_funcional = db.Column(db.String(100), nullable=False)
     num_participantes = db.Column(db.Integer, nullable=False)
     modalidad = db.Column(db.String(20), nullable=False)  # VIRTUAL, PRESENCIAL, MIXTO
     horas = db.Column(db.Float, nullable=False)
@@ -228,6 +226,18 @@ class ObservacionPlan(db.Model):
     def __repr__(self):
         return f'<ObservacionPlan {self.tipo_observacion} por {self.autor}>'
 
+class EnvioTemasDirector(db.Model):
+    """Modelo para registrar cuando un director ha enviado definitivamente sus temas"""
+    __tablename__ = 'envios_temas_director'
+
+    id = db.Column(db.Integer, primary_key=True)
+    plan_id = db.Column(db.Integer, db.ForeignKey('planes_capacitacion.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    fecha_envio = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<EnvioTemasDirector plan_id={self.plan_id} usuario_id={self.usuario_id}>'
+
 
 class Empleado(db.Model):
     """Modelo para Empleados de EMELNORTE (nómina para búsqueda en participantes)"""
@@ -254,6 +264,35 @@ class Empleado(db.Model):
         }
 
 
+class EmpresaCapacitadora(db.Model):
+    """Modelo para Proveedores de Capacitación"""
+    __tablename__ = 'empresas_capacitadoras'
+
+    id = db.Column(db.Integer, primary_key=True)
+    ruc = db.Column(db.String(13), nullable=False, unique=True)
+    razon_social = db.Column(db.String(200), nullable=False)
+    contacto_nombre = db.Column(db.String(150), nullable=True)
+    contacto_telefono = db.Column(db.String(50), nullable=True)
+    correo = db.Column(db.String(100), nullable=True)
+    especialidad = db.Column(db.String(200), nullable=True)
+    estado = db.Column(db.String(20), nullable=False, default='ACTIVO')
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<EmpresaCapacitadora {self.razon_social}>'
+
+    def get_promedio_calificacion(self):
+        """Calcula el promedio histórico basado en Evaluaciones"""
+        total = 0
+        count = 0
+        for cap in self.capacitaciones_ejecutadas:
+            for ev in cap.evaluaciones:
+                if ev.calificacion_empresa:
+                    total += ev.calificacion_empresa
+                    count += 1
+        return round(total / count, 1) if count > 0 else 0
+
+
 class CapacitacionEjecutada(db.Model):
     """Modelo para Capacitaciones Ejecutadas (Etapa de Ejecución)"""
     __tablename__ = 'capacitaciones_ejecutadas'
@@ -267,9 +306,7 @@ class CapacitacionEjecutada(db.Model):
     valor_con_iva = db.Column(db.Float, nullable=False)
     proceso_contratacion = db.Column(db.String(100), nullable=True)
     centro_costo = db.Column(db.String(100), nullable=True)
-    etapa_funcional = db.Column(db.String(100), nullable=True)
-    subetapa_funcional = db.Column(db.String(100), nullable=True)
-    empresa_capacitadora = db.Column(db.String(200), nullable=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresas_capacitadoras.id'), nullable=True)
     tipo_certificacion = db.Column(db.String(100), nullable=True)
     observaciones = db.Column(db.Text, nullable=True)
     estado = db.Column(db.String(20), nullable=False, default='ACTIVO')
@@ -279,6 +316,7 @@ class CapacitacionEjecutada(db.Model):
     tema_seleccionado = db.relationship('TemaSeleccionado', backref='capacitacion_ejecutada')
     participantes = db.relationship('Participante', backref='capacitacion', lazy='dynamic',
                                     cascade='all, delete-orphan')
+    empresa = db.relationship('EmpresaCapacitadora', backref='capacitaciones_ejecutadas')
 
     def __repr__(self):
         return f'<CapacitacionEjecutada id={self.id}>'
@@ -308,3 +346,24 @@ class Participante(db.Model):
 
     def __repr__(self):
         return f'<Participante {self.nombres}>'
+
+
+class EvaluacionCapacitacion(db.Model):
+    """Modelo para la evaluación de satisfacción del participante hacia la capacitación/empresa"""
+    __tablename__ = 'evaluaciones_capacitacion'
+
+    id = db.Column(db.Integer, primary_key=True)
+    participante_id = db.Column(db.Integer, db.ForeignKey('participantes.id'), nullable=False)
+    capacitacion_id = db.Column(db.Integer, db.ForeignKey('capacitaciones_ejecutadas.id'), nullable=False)
+    
+    calificacion_curso = db.Column(db.Integer, nullable=False) # 1 a 5
+    calificacion_empresa = db.Column(db.Integer, nullable=False) # 1 a 5
+    
+    comentarios = db.Column(db.Text, nullable=True)
+    fecha_evaluacion = db.Column(db.DateTime, default=datetime.utcnow)
+
+    participante = db.relationship('Participante', backref=db.backref('evaluacion', uselist=False))
+    capacitacion = db.relationship('CapacitacionEjecutada', backref='evaluaciones')
+
+    def __repr__(self):
+        return f'<EvaluacionCapacitacion part={self.participante_id} cap={self.capacitacion_id}>'

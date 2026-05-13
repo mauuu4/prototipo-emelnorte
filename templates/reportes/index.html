@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Analítico de Capacitación - SIGEERN{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--border);
+    }
+    .kpi-card {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .kpi-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+    }
+    .kpi-icon.primary { background: rgba(26, 115, 232, 0.1); color: var(--primary); }
+    .kpi-icon.success { background: rgba(40, 167, 69, 0.1); color: var(--success); }
+    .kpi-icon.warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+    .kpi-icon.info { background: rgba(23, 162, 184, 0.1); color: var(--info); }
+    
+    .kpi-details h3 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #333;
+    }
+    .kpi-details p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    .chart-container-lg {
+        position: relative;
+        height: 380px;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="pi pi-chart-line"></i> Dashboard Analítico de Capacitación</h2>
+    
+    <div class="d-flex gap-3 align-items-center">
+        {% if data and data.anios_disponibles %}
+        <form action="{{ url_for('reportes.index') }}" method="GET" class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <label for="anio" class="mb-0 fw-bold">Año:</label>
+                <select name="anio" id="anio" class="pf-select" style="width: auto;" onchange="this.form.submit()">
+                    {% for a in data.anios_disponibles %}
+                    <option value="{{ a }}" {% if a == data.anio %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="d-flex align-items-center gap-2">
+                <label for="mes" class="mb-0 fw-bold">Mes:</label>
+                <select name="mes" id="mes" class="pf-select" style="width: auto;" onchange="this.form.submit()">
+                    <option value="0" {% if data.mes == 0 %}selected{% endif %}>Todos (Anual)</option>
+                    <option value="1" {% if data.mes == 1 %}selected{% endif %}>Enero</option>
+                    <option value="2" {% if data.mes == 2 %}selected{% endif %}>Febrero</option>
+                    <option value="3" {% if data.mes == 3 %}selected{% endif %}>Marzo</option>
+                    <option value="4" {% if data.mes == 4 %}selected{% endif %}>Abril</option>
+                    <option value="5" {% if data.mes == 5 %}selected{% endif %}>Mayo</option>
+                    <option value="6" {% if data.mes == 6 %}selected{% endif %}>Junio</option>
+                    <option value="7" {% if data.mes == 7 %}selected{% endif %}>Julio</option>
+                    <option value="8" {% if data.mes == 8 %}selected{% endif %}>Agosto</option>
+                    <option value="9" {% if data.mes == 9 %}selected{% endif %}>Septiembre</option>
+                    <option value="10" {% if data.mes == 10 %}selected{% endif %}>Octubre</option>
+                    <option value="11" {% if data.mes == 11 %}selected{% endif %}>Noviembre</option>
+                    <option value="12" {% if data.mes == 12 %}selected{% endif %}>Diciembre</option>
+                </select>
+            </div>
+        </form>
+        {% endif %}
+        
+        <button class="pf-btn pf-btn-primary" onclick="window.print()">
+            <i class="pi pi-print"></i> Imprimir Reporte
+        </button>
+    </div>
+</div>
+
+{% if not data %}
+<div class="alert alert-warning">No hay datos de planes para mostrar reportes.</div>
+{% else %}
+
+<!-- KPIs Row -->
+<div class="row">
+    <!-- Planificación vs Ejecución -->
+    <div class="col-md-3">
+        <div class="report-card kpi-card">
+            <div class="kpi-icon primary"><i class="pi pi-check-circle"></i></div>
+            <div class="kpi-details">
+                <h3>{{ data.porcentaje }}%</h3>
+                <p>Plan vs Ejecución</p>
+                <small class="text-muted">{{ data.ejecutadas }} de {{ data.planificadas }} Temas</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Presupuesto -->
+    <div class="col-md-3">
+        <div class="report-card kpi-card">
+            <div class="kpi-icon warning"><i class="pi pi-dollar"></i></div>
+            <div class="kpi-details">
+                <h3>{{ data.porcentaje_presupuesto }}%</h3>
+                <p>Presupuesto Ejecutado</p>
+                <small class="text-muted">${{ "{:,.2f}".format(data.presupuesto_ejecutado) }}</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Total Capacitaciones -->
+    <div class="col-md-3">
+        <div class="report-card kpi-card">
+            <div class="kpi-icon success"><i class="pi pi-book"></i></div>
+            <div class="kpi-details">
+                <h3>{{ data.ejecutadas }}</h3>
+                <p>Cursos Ejecutados</p>
+                <small class="text-muted">En el año {{ data.anio }}</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Participantes -->
+    <div class="col-md-3">
+        <div class="report-card kpi-card">
+            <div class="kpi-icon info"><i class="pi pi-users"></i></div>
+            <div class="kpi-details">
+                <h3>{{ data.total_participantes }}</h3>
+                <p>Total Participantes</p>
+                <small class="text-muted">Aprobados</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1: Mensual y Direcciones -->
+<div class="row">
+    <!-- Mensual -->
+    <div class="col-md-8">
+        <div class="report-card">
+            <h5 class="mb-4 text-muted"><i class="pi pi-calendar me-2"></i> Reporte Anual y Mensual de Ejecución</h5>
+            <div class="chart-container-lg">
+                <canvas id="mensualChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Direcciones -->
+    <div class="col-md-4">
+        <div class="report-card">
+            <h5 class="mb-4 text-muted"><i class="pi pi-building me-2"></i> Ejecución por Área</h5>
+            <div class="chart-container-lg">
+                <canvas id="direccionesChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2: Donas (Modalidad y Género) -->
+<div class="row">
+    <!-- Modalidad -->
+    <div class="col-md-6">
+        <div class="report-card">
+            <h5 class="mb-4 text-muted text-center"><i class="pi pi-desktop me-2"></i> Distribución por Modalidad</h5>
+            <div class="chart-container">
+                <canvas id="modalidadChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Género -->
+    <div class="col-md-6">
+        <div class="report-card">
+            <h5 class="mb-4 text-muted text-center"><i class="pi pi-users me-2"></i> Participantes por Género</h5>
+            <div class="chart-container">
+                <canvas id="generoChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+        Chart.defaults.color = '#6c757d';
+
+        // 1. Chart Mensual (Mixed: Bar = Cantidad, Line = Presupuesto)
+        const ctxMensual = document.getElementById('mensualChart').getContext('2d');
+        new Chart(ctxMensual, {
+            type: 'bar',
+            data: {
+                labels: {{ data.meses_labels | safe }},
+                datasets: [
+                    {
+                        label: 'Inversión ($)',
+                        data: {{ data.presupuesto_mensual_data | tojson }},
+                        type: 'line',
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: 'Capacitaciones Ejecutadas',
+                        data: {{ data.meses_data | tojson }},
+                        backgroundColor: '#1a73e8',
+                        borderRadius: 4,
+                        yAxisID: 'y'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'Cantidad' },
+                        ticks: { stepSize: 1 }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { display: true, text: 'Inversión ($)' },
+                        grid: { drawOnChartArea: false } // only draw grid lines for one axis to keep it clean
+                    }
+                },
+                plugins: {
+                    legend: { position: 'top' }
+                }
+            }
+        });
+
+        // 2. Chart Direcciones (Horizontal Bar)
+        const ctxDirecciones = document.getElementById('direccionesChart').getContext('2d');
+        new Chart(ctxDirecciones, {
+            type: 'bar',
+            data: {
+                labels: {{ data.direcciones_labels | safe }},
+                datasets: [{
+                    label: 'Capacitaciones',
+                    data: {{ data.direcciones_data | tojson }},
+                    backgroundColor: '#17a2b8',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Hace la barra horizontal
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { 
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    },
+                    y: { grid: { display: false } }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // 3. Chart Modalidad (Doughnut)
+        const ctxModalidad = document.getElementById('modalidadChart').getContext('2d');
+        new Chart(ctxModalidad, {
+            type: 'doughnut',
+            data: {
+                labels: {{ data.modalidades_labels | safe }},
+                datasets: [{
+                    data: {{ data.modalidades_data | tojson }},
+                    backgroundColor: ['#28a745', '#1a73e8', '#f59e0b'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right' }
+                },
+                cutout: '65%'
+            }
+        });
+
+        // 4. Chart Género (Doughnut)
+        const ctxGenero = document.getElementById('generoChart').getContext('2d');
+        new Chart(ctxGenero, {
+            type: 'doughnut',
+            data: {
+                labels: ['Hombres', 'Mujeres'],
+                datasets: [{
+                    data: [{{ data.hombres }}, {{ data.mujeres }}],
+                    backgroundColor: ['#1a73e8', '#e81a73'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right' }
+                },
+                cutout: '65%'
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

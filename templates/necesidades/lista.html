@@ -31,7 +31,14 @@
         </div>
 
         <!-- Alertas de límite -->
-        {% if not puede_agregar_estado %}
+        {% if temas_enviados %}
+        <div class="pf-infobox" style="background-color: #dcfce7; border-left: 4px solid #166534;">
+            <i class="pi pi-check-circle" style="color: #166534;"></i>
+            <div style="color: #166534;">
+                <strong>Temas enviados.</strong> Sus necesidades de capacitación han sido enviadas exitosamente al Analista de Talento Humano. Ya no puede realizar modificaciones.
+            </div>
+        </div>
+        {% elif not puede_agregar_estado %}
         <div class="pf-warningbox">
             <i class="pi pi-lock"></i>
             <div>
@@ -40,13 +47,21 @@
             </div>
         </div>
         {% elif temas|length >= max_temas %}
-        <div class="pf-warningbox">
+        <div class="pf-warningbox" style="margin-bottom: 1rem;">
             <i class="pi pi-exclamation-triangle"></i>
             <div>
                 Ha alcanzado el límite máximo de <strong>{{ max_temas }} temas</strong> para
                 <strong>{{ usuario.direccion.nombre if usuario.direccion else 'su dirección' }}</strong>.
                 No puede registrar más necesidades.
             </div>
+        </div>
+        <div style="margin-bottom: 1rem; text-align: right;">
+            <form action="{{ url_for('necesidades.enviar_temas') }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Está seguro de enviar sus temas? Ya no podrá modificarlos ni agregar más.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="pf-btn pf-btn-success" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                    <i class="pi pi-send"></i> Enviar Temas al Analista
+                </button>
+            </form>
         </div>
         {% endif %}
 
@@ -58,14 +73,12 @@
                     <tr>
                         <th style="width:30px;">#</th>
                         <th>Nombre de la Capacitación</th>
-                        <th>Etapa Funcional</th>
-                        <th>Subetapa</th>
                         <th style="width:90px;">Modalidad</th>
                         <th style="width:55px;">Horas</th>
                         <th style="width:75px;">Part.</th>
                         <th style="width:80px;">Mes</th>
                         <th style="width:110px;">Presupuesto</th>
-                        {% if puede_agregar_estado %}
+                        {% if puede_agregar_estado and not temas_enviados %}
                         <th style="width:75px; text-align:center;">Acciones</th>
                         {% endif %}
                     </tr>
@@ -75,8 +88,6 @@
                     <tr>
                         <td class="text-muted-sm">{{ loop.index }}</td>
                         <td><strong>{{ tema.nombre }}</strong></td>
-                        <td style="font-size:0.8rem;">{{ tema.etapa_funcional }}</td>
-                        <td class="text-muted-sm" style="font-size:0.78rem;">{{ tema.subetapa_funcional }}</td>
                         <td>
                             <span style="font-size:0.7rem; padding:2px 7px; border-radius:10px; font-weight:600;
                                 {% if tema.modalidad == 'VIRTUAL' %}background:#dbeafe;color:#1d4ed8;
@@ -89,10 +100,10 @@
                         <td>{{ tema.num_participantes }}</td>
                         <td class="text-muted-sm">{{ tema.get_nombre_mes()[:3] }}</td>
                         <td><strong>${{ "%.2f"|format(tema.presupuesto_referencial) }}</strong></td>
-                        {% if puede_agregar_estado %}
+                        {% if puede_agregar_estado and not temas_enviados %}
                         <td style="text-align:center; white-space:nowrap;">
                             <button type="button" class="pf-icon-btn pf-icon-btn-edit" title="Editar"
-                                    onclick="abrirEditar({{ tema.id }}, '{{ tema.nombre|e }}', '{{ tema.etapa_funcional|e }}', '{{ tema.subetapa_funcional|e }}', {{ tema.num_participantes }}, '{{ tema.modalidad }}', {{ tema.horas }}, {{ tema.presupuesto_referencial }}, {{ tema.mes_ejecucion }})">
+                                    onclick="abrirEditar({{ tema.id }}, '{{ tema.nombre|e }}', {{ tema.num_participantes }}, '{{ tema.modalidad }}', {{ tema.horas }}, {{ tema.presupuesto_referencial }}, {{ tema.mes_ejecucion }})">
                                 <i class="pi pi-pencil"></i>
                             </button>
                             <form action="{{ url_for('necesidades.eliminar', tema_id=tema.id) }}" method="POST"
@@ -153,30 +164,7 @@
                            placeholder="Ej: Gestión de Redes de Distribución Eléctrica">
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="pf-field">
-                            <label class="pf-label">Etapa Funcional <span>*</span></label>
-                            <select class="pf-select" name="etapa_funcional" required>
-                                <option value="">-- Seleccionar --</option>
-                                {% for etapa in etapas %}
-                                <option value="{{ etapa }}">{{ etapa }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="pf-field">
-                            <label class="pf-label">Subetapa Funcional <span>*</span></label>
-                            <select class="pf-select" name="subetapa_funcional" required>
-                                <option value="">-- Seleccionar --</option>
-                                {% for sub in subetapas %}
-                                <option value="{{ sub }}">{{ sub }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </div>
+
 
                 <div class="row">
                     <div class="col-md-4">
@@ -256,28 +244,7 @@
                     <input type="text" class="pf-input" name="nombre" id="edit_nombre" required>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="pf-field">
-                            <label class="pf-label">Etapa Funcional <span>*</span></label>
-                            <select class="pf-select" name="etapa_funcional" id="edit_etapa" required>
-                                {% for etapa in etapas %}
-                                <option value="{{ etapa }}">{{ etapa }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="pf-field">
-                            <label class="pf-label">Subetapa Funcional <span>*</span></label>
-                            <select class="pf-select" name="subetapa_funcional" id="edit_subetapa" required>
-                                {% for sub in subetapas %}
-                                <option value="{{ sub }}">{{ sub }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </div>
+
 
                 <div class="row">
                     <div class="col-md-4">
@@ -357,14 +324,12 @@ document.addEventListener('click', function(e) {
     }
 });
 
-function abrirEditar(id, nombre, etapa, subetapa, participantes, modalidad, horas, presupuesto, mes) {
+function abrirEditar(id, nombre, participantes, modalidad, horas, presupuesto, mes) {
     document.getElementById('formEditar').action = '/necesidades/' + id + '/editar';
     document.getElementById('edit_nombre').value = nombre;
     document.getElementById('edit_participantes').value = participantes;
     document.getElementById('edit_horas').value = horas;
     document.getElementById('edit_presupuesto').value = presupuesto;
-    setSelect('edit_etapa', etapa);
-    setSelect('edit_subetapa', subetapa);
     setSelect('edit_modalidad', modalidad);
     setSelectByVal('edit_mes', mes);
     openModal('modalEditarNecesidad');

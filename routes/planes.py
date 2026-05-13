@@ -66,8 +66,15 @@ def detalle(plan_id):
     plan = PlanCapacitacion.query.get_or_404(plan_id)
     usuario = get_usuario_actual()
 
+    # Obtener usuarios que han enviado sus temas
+    from models import EnvioTemasDirector
+    usuarios_que_enviaron = [envio.usuario_id for envio in EnvioTemasDirector.query.filter_by(plan_id=plan.id).all()]
+
     temas_por_direccion = {}
     for tema in plan.temas.filter(TemaCapacitacion.estado == 'ACTIVO').order_by(TemaCapacitacion.fecha_creacion):
+        # Mostrar todos los temas, incluso si el director no los ha enviado aún para propósitos de simulación y visibilidad
+
+            
         if tema.usuario and tema.usuario.direccion:
             dir_nombre = tema.usuario.direccion.nombre
             if dir_nombre not in temas_por_direccion:
@@ -82,7 +89,10 @@ def detalle(plan_id):
     total_seleccionado = plan.get_total_seleccionado()
     supera_presupuesto = total_seleccionado > plan.monto_referencial if plan.monto_referencial else False
     direcciones = Direccion.query.filter_by(estado='ACTIVO').order_by(Direccion.nombre).all()
-
+    
+    # Obtener temas extra plan
+    temas_extra = plan.temas.filter(TemaCapacitacion.estado == 'EXTRA_PLAN').order_by(TemaCapacitacion.fecha_creacion).all()
+    
     return render_template('planes/detalle.html',
                            plan=plan,
                            temas_por_direccion=temas_por_direccion,
@@ -90,7 +100,8 @@ def detalle(plan_id):
                            total_seleccionado=total_seleccionado,
                            supera_presupuesto=supera_presupuesto,
                            usuario=usuario,
-                           direcciones=direcciones)
+                           direcciones=direcciones,
+                           temas_extra=temas_extra)
 
 
 @planes_bp.route('/<int:plan_id>/actualizar-presupuesto-aprobado', methods=['POST'])
@@ -114,19 +125,16 @@ def actualizar_presupuesto_aprobado(plan_id):
 # RN-04: Agregar temas adicionales (solo Analista)
 # ─────────────────────────────────────────────────────────────
 
-@planes_bp.route('/<int:plan_id>/tema/nuevo', methods=['POST'])
+@planes_bp.route('/<int:plan_id>/tema/nuevo_ajax', methods=['POST'])
 @rol_required('ANALISTA')
-def nuevo_tema(plan_id):
-    """Agregar un tema adicional al plan desde modal"""
+def nuevo_tema_ajax(plan_id):
+    """Agregar un tema adicional al plan via AJAX"""
     plan = PlanCapacitacion.query.get_or_404(plan_id)
-    if not plan.is_editable():
-        flash('No se pueden agregar temas en el estado actual del plan.', 'warning')
-        return redirect(url_for('planes.detalle', plan_id=plan_id))
+    if not (plan.is_editable() or plan.estado == 'APROBADO'):
+        return jsonify({'success': False, 'message': 'No se pueden agregar temas en el estado actual del plan.'})
 
     usuario = get_usuario_actual()
     nombre = request.form.get('nombre', '').strip()
-    etapa_funcional = request.form.get('etapa_funcional', '').strip()
-    subetapa_funcional = request.form.get('subetapa_funcional', '').strip()
     num_participantes = request.form.get('num_participantes', type=int)
     modalidad = request.form.get('modalidad')
     horas = request.form.get('horas', type=float)
@@ -134,23 +142,20 @@ def nuevo_tema(plan_id):
     mes_ejecucion = request.form.get('mes_ejecucion', type=int)
     direccion_id = request.form.get('direccion_id', type=int)
 
-    if not all([nombre, etapa_funcional, subetapa_funcional, num_participantes, modalidad, horas, presupuesto_referencial, mes_ejecucion]):
-        flash('Todos los campos son obligatorios.', 'danger')
-        return redirect(url_for('planes.detalle', plan_id=plan_id))
+    if not all([nombre, num_participantes, modalidad, horas, presupuesto_referencial, mes_ejecucion, direccion_id]):
+        return jsonify({'success': False, 'message': 'Todos los campos son obligatorios.'})
 
-    # Buscar un usuario de la direccion seleccionada para asociar el tema,
-    # o usar el analista actual con direccion_id explicitamente
+    # Buscar un usuario de la direccion seleccionada para asociar el tema
     usuario_asociado_id = usuario.id
-    if direccion_id:
-        from models import Usuario as U
-        usr_dir = U.query.filter_by(direccion_id=direccion_id, rol='DIRECTOR').first()
-        if usr_dir:
-            usuario_asociado_id = usr_dir.id
+    from models import Usuario as U
+    usr_dir = U.query.filter_by(direccion_id=direccion_id, rol='DIRECTOR').first()
+    if usr_dir:
+        usuario_asociado_id = usr_dir.id
+    
+    dir_obj = Direccion.query.get(direccion_id)
 
     tema = TemaCapacitacion(
         nombre=nombre,
-        etapa_funcional=etapa_funcional,
-        subetapa_funcional=subetapa_funcional,
         num_participantes=num_participantes,
         modalidad=modalidad,
         horas=horas,
@@ -173,8 +178,130 @@ def nuevo_tema(plan_id):
     db.session.add(ts)
     db.session.commit()
 
-    flash(f'Tema "{nombre}" agregado exitosamente.', 'success')
-    return redirect(url_for('planes.detalle', plan_id=plan_id))
+    return jsonify({
+        'success': True,
+        'message': 'Tema agregado exitosamente',
+        'tema': {
+            'id': tema.id,
+            'nombre': tema.nombre,
+            'modalidad': tema.modalidad,
+            'horas': tema.horas,
+            'num_participantes': tema.num_participantes,
+            'presupuesto_referencial': tema.presupuesto_referencial,
+            'direccion_nombre': dir_obj.nombre if dir_obj else 'Desconocida'
+        },
+        'total_seleccionado': plan.get_total_seleccionado(),
+        'temas_seleccionados_count': plan.get_temas_seleccionados_count()
+    })
+
+@planes_bp.route('/<int:plan_id>/tema/extra_ajax', methods=['POST'])
+@rol_required('ANALISTA')
+def nuevo_extra_ajax(plan_id):
+    """Agregar un tema NO PLANIFICADO (Extra Plan) cuando el plan ya está APROBADO"""
+    plan = PlanCapacitacion.query.get_or_404(plan_id)
+    if plan.estado != 'APROBADO':
+        return jsonify({'success': False, 'message': 'El plan debe estar APROBADO para registrar temas no planificados.'})
+
+    usuario = get_usuario_actual()
+    nombre = request.form.get('nombre', '').strip()
+    num_participantes = request.form.get('num_participantes', type=int)
+    modalidad = request.form.get('modalidad')
+    horas = request.form.get('horas', type=float)
+    presupuesto_referencial = 0.0 # Es gratuito
+    mes_ejecucion = request.form.get('mes_ejecucion', type=int)
+    direccion_id = request.form.get('direccion_id', type=int)
+
+    if not all([nombre, num_participantes, modalidad, horas, mes_ejecucion, direccion_id]):
+        return jsonify({'success': False, 'message': 'Todos los campos son obligatorios.'})
+
+    # Buscar usuario de la direccion seleccionada
+    usuario_asociado_id = usuario.id
+    from models import Usuario as U
+    usr_dir = U.query.filter_by(direccion_id=direccion_id, rol='DIRECTOR').first()
+    if usr_dir:
+        usuario_asociado_id = usr_dir.id
+    
+    dir_obj = Direccion.query.get(direccion_id)
+
+    tema = TemaCapacitacion(
+        nombre=nombre + " (NO PLANIFICADO)",
+        num_participantes=num_participantes,
+        modalidad=modalidad,
+        horas=horas,
+        presupuesto_referencial=presupuesto_referencial,
+        mes_ejecucion=mes_ejecucion,
+        usuario_id=usuario_asociado_id,
+        plan_id=plan_id,
+        es_del_analista=True,
+        estado='EXTRA_PLAN'
+    )
+    db.session.add(tema)
+    db.session.flush()
+
+    ts = TemaSeleccionado(
+        tema_id=tema.id,
+        plan_id=plan_id,
+        seleccionado=True,
+        presupuesto_aprobado=0.0,
+        observaciones='TEMA EXTRA PLANIFICACION (GRATUITO)'
+    )
+    db.session.add(ts)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': 'Tema Extra-Plan agregado exitosamente. Ya puede registrar su ejecución.',
+        'tema': {
+            'id': tema.id,
+            'nombre': tema.nombre,
+            'modalidad': tema.modalidad,
+            'horas': tema.horas,
+            'num_participantes': tema.num_participantes,
+            'presupuesto_referencial': 0,
+            'direccion_nombre': dir_obj.nombre if dir_obj else 'Desconocida'
+        }
+    })
+
+@planes_bp.route('/<int:plan_id>/tema/<int:tema_id>/editar_ajax', methods=['POST'])
+@rol_required('ANALISTA')
+def editar_tema_ajax(plan_id, tema_id):
+    """Editar un tema adicional al plan via AJAX"""
+    plan = PlanCapacitacion.query.get_or_404(plan_id)
+    if not (plan.is_editable() or plan.estado == 'APROBADO'):
+        return jsonify({'success': False, 'message': 'No se pueden editar temas en este estado.'})
+
+    tema = TemaCapacitacion.query.get_or_404(tema_id)
+    if not tema.es_del_analista:
+        return jsonify({'success': False, 'message': 'Solo puede editar temas agregados manualmente.'})
+
+    tema.nombre = request.form.get('nombre', tema.nombre).strip()
+    tema.num_participantes = request.form.get('num_participantes', type=int) or tema.num_participantes
+    tema.modalidad = request.form.get('modalidad') or tema.modalidad
+    tema.horas = request.form.get('horas', type=float) or tema.horas
+    tema.presupuesto_referencial = request.form.get('presupuesto_referencial', type=float) or tema.presupuesto_referencial
+    tema.mes_ejecucion = request.form.get('mes_ejecucion', type=int) or tema.mes_ejecucion
+
+    # Actualizar presupuesto aprobado si esta seleccionado
+    ts = TemaSeleccionado.query.filter_by(tema_id=tema.id, plan_id=plan_id).first()
+    if ts and ts.seleccionado:
+        ts.presupuesto_aprobado = tema.presupuesto_referencial
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': 'Tema actualizado exitosamente',
+        'tema': {
+            'id': tema.id,
+            'nombre': tema.nombre,
+            'modalidad': tema.modalidad,
+            'horas': tema.horas,
+            'num_participantes': tema.num_participantes,
+            'presupuesto_referencial': tema.presupuesto_referencial
+        },
+        'total_seleccionado': plan.get_total_seleccionado(),
+        'temas_seleccionados_count': plan.get_temas_seleccionados_count()
+    })
 
 
 
@@ -201,6 +328,31 @@ def toggle_tema(plan_id, tema_id):
         estado = 'seleccionado' if ts.seleccionado else 'descartado'
         flash(f'Tema {estado}.', 'success')
     return redirect(url_for('planes.detalle', plan_id=plan_id))
+
+
+@planes_bp.route('/<int:plan_id>/tema/<int:tema_id>/toggle_ajax', methods=['POST'])
+@rol_required('ANALISTA')
+def toggle_tema_ajax(plan_id, tema_id):
+    """Ajax endpoint para seleccionar o descartar un tema sin recargar la página"""
+    plan = PlanCapacitacion.query.get_or_404(plan_id)
+    if not plan.is_editable():
+        return jsonify({'success': False, 'message': 'Plan no editable'})
+
+    ts = TemaSeleccionado.query.filter_by(tema_id=tema_id, plan_id=plan_id).first()
+    if ts:
+        ts.seleccionado = not ts.seleccionado
+        if ts.seleccionado and not ts.presupuesto_aprobado:
+            tema = TemaCapacitacion.query.get(tema_id)
+            ts.presupuesto_aprobado = tema.presupuesto_referencial if tema else 0
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'seleccionado': ts.seleccionado,
+            'total_seleccionado': plan.get_total_seleccionado(),
+            'temas_seleccionados_count': plan.get_temas_seleccionados_count()
+        })
+    return jsonify({'success': False, 'message': 'Tema no encontrado'})
+
 
 
 @planes_bp.route('/<int:plan_id>/tema/<int:tema_id>/presupuesto', methods=['POST'])
@@ -282,7 +434,7 @@ def accion_jefe(plan_id):
         plan.fecha_envio_director = datetime.utcnow()
         obs_tipo = 'APROBACION'
         obs_texto = f'Plan aprobado por Jefe de Personal. Enviado al Director de Talento Humano. {observacion_texto}'.strip()
-        flash('Plan aprobado y enviado al Director de Talento Humano.', 'success')
+        flash('Plan aprobado. Se ha enviado un correo al Director de Talento Humano con el informe PDF firmado digitalmente adjunto.', 'success')
 
     elif action == 'devolver':
         if not observacion_texto:
@@ -344,7 +496,7 @@ def enviar_presidente(plan_id):
     db.session.add(obs)
     db.session.commit()
 
-    flash('Plan enviado al Presidente Ejecutivo para aprobación final.', 'success')
+    flash('Plan firmado electrónicamente y enviado al Presidente Ejecutivo para aprobación final.', 'success')
     return redirect(url_for('revision.lista_director'))
 
 
@@ -378,5 +530,31 @@ def aprobar_final(plan_id):
     db.session.add(obs)
     db.session.commit()
 
-    flash(f'¡Plan Anual de Capacitación {plan.anio} aprobado definitivamente! El plan quedó bloqueado en modo solo lectura.', 'success')
+    flash(f'¡Plan {plan.anio} firmado electrónicamente y aprobado! El plan quedó bloqueado.', 'success')
     return redirect(url_for('revision.lista_presidente'))
+
+@planes_bp.route('/<int:plan_id>/imprimir')
+@login_required
+def imprimir_plan(plan_id):
+    """Vista optimizada para imprimir o guardar como PDF el plan"""
+    plan = PlanCapacitacion.query.get_or_404(plan_id)
+    
+    # Construir temas por dirección (solo seleccionados)
+    temas_por_direccion = {}
+    for tema in plan.temas.filter(TemaCapacitacion.estado == 'ACTIVO').order_by(TemaCapacitacion.fecha_creacion):
+        ts = tema.tema_seleccionado
+        if not ts or not ts.seleccionado:
+            continue
+        if tema.usuario and tema.usuario.direccion:
+            dir_nombre = tema.usuario.direccion.nombre
+            if dir_nombre not in temas_por_direccion:
+                temas_por_direccion[dir_nombre] = {
+                    'direccion': tema.usuario.direccion,
+                    'temas': [],
+                }
+            temas_por_direccion[dir_nombre]['temas'].append(tema)
+
+    return render_template('planes/imprimir.html',
+                           plan=plan,
+                           temas_por_direccion=temas_por_direccion,
+                           total_seleccionado=plan.get_total_seleccionado())

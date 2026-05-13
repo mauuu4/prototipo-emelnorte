@@ -4,22 +4,14 @@ Rutas de Necesidades de Capacitación - Solo para DIRECTOR de área (RN-02, RN-0
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
-from models import PlanCapacitacion, TemaCapacitacion, TemaSeleccionado, Direccion
+from models import PlanCapacitacion, TemaCapacitacion, TemaSeleccionado, Direccion, EnvioTemasDirector
 from routes.auth import login_required, get_usuario_actual, rol_required
 from config import db
 from datetime import datetime
 
 necesidades_bp = Blueprint('necesidades', __name__, url_prefix='/necesidades')
 
-ETAPAS_FUNCIONALES = [
-    'etapa 1',
-    'etapa 2',
-]
 
-SUBETAPAS_FUNCIONALES = [
-    'subetapa 1',
-    'subetapa 2',
-]
 
 MESES = [
     (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
@@ -60,7 +52,11 @@ def lista():
     ).order_by(TemaCapacitacion.fecha_creacion).all()
 
     max_temas = usuario.direccion.max_temas if usuario.direccion else 5
-    puede_agregar = puede_agregar_estado and len(temas) < max_temas
+    
+    envio = EnvioTemasDirector.query.filter_by(plan_id=plan.id, usuario_id=usuario.id).first()
+    temas_enviados = envio is not None
+    
+    puede_agregar = puede_agregar_estado and len(temas) < max_temas and not temas_enviados
 
     return render_template('necesidades/lista.html',
                            temas=temas,
@@ -68,9 +64,8 @@ def lista():
                            puede_agregar=puede_agregar,
                            puede_agregar_estado=puede_agregar_estado,
                            max_temas=max_temas,
+                           temas_enviados=temas_enviados,
                            usuario=usuario,
-                           etapas=ETAPAS_FUNCIONALES,
-                           subetapas=SUBETAPAS_FUNCIONALES,
                            meses=MESES)
 
 
@@ -92,6 +87,11 @@ def nuevo():
     if plan.estado != 'BORRADOR':
         flash('El plan de capacitación ya no acepta nuevas necesidades.', 'warning')
         return redirect(url_for('necesidades.lista'))
+        
+    envio = EnvioTemasDirector.query.filter_by(plan_id=plan.id, usuario_id=usuario.id).first()
+    if envio:
+        flash('Ya ha enviado sus temas para este plan. No puede agregar más.', 'warning')
+        return redirect(url_for('necesidades.lista'))
 
     # RN-03: Verificar límite de temas
     temas_actuales = TemaCapacitacion.query.filter_by(
@@ -104,22 +104,18 @@ def nuevo():
         return redirect(url_for('necesidades.lista'))
 
     nombre = request.form.get('nombre', '').strip()
-    etapa_funcional = request.form.get('etapa_funcional', '').strip()
-    subetapa_funcional = request.form.get('subetapa_funcional', '').strip()
     num_participantes = request.form.get('num_participantes', type=int)
     modalidad = request.form.get('modalidad')
     horas = request.form.get('horas', type=float)
     presupuesto_referencial = request.form.get('presupuesto_referencial', type=float)
     mes_ejecucion = request.form.get('mes_ejecucion', type=int)
 
-    if not all([nombre, etapa_funcional, subetapa_funcional, num_participantes, modalidad, horas, presupuesto_referencial, mes_ejecucion]):
+    if not all([nombre, num_participantes, modalidad, horas, presupuesto_referencial, mes_ejecucion]):
         flash('Todos los campos son obligatorios.', 'danger')
         return redirect(url_for('necesidades.lista'))
 
     tema = TemaCapacitacion(
         nombre=nombre,
-        etapa_funcional=etapa_funcional,
-        subetapa_funcional=subetapa_funcional,
         num_participantes=num_participantes,
         modalidad=modalidad,
         horas=horas,
@@ -159,10 +155,13 @@ def editar(tema_id):
     if tema.plan.estado != 'BORRADOR':
         flash('No se puede editar el tema en este estado del plan.', 'warning')
         return redirect(url_for('necesidades.lista'))
+        
+    envio = EnvioTemasDirector.query.filter_by(plan_id=tema.plan_id, usuario_id=usuario.id).first()
+    if envio:
+        flash('Ya ha enviado sus temas para este plan. No puede editar.', 'warning')
+        return redirect(url_for('necesidades.lista'))
 
     tema.nombre = request.form.get('nombre', tema.nombre).strip()
-    tema.etapa_funcional = request.form.get('etapa_funcional', tema.etapa_funcional)
-    tema.subetapa_funcional = request.form.get('subetapa_funcional', tema.subetapa_funcional)
     tema.num_participantes = request.form.get('num_participantes', type=int) or tema.num_participantes
     tema.modalidad = request.form.get('modalidad', tema.modalidad)
     tema.horas = request.form.get('horas', type=float) or tema.horas
@@ -188,8 +187,50 @@ def eliminar(tema_id):
     if tema.plan.estado != 'BORRADOR':
         flash('No se puede eliminar el tema en este estado del plan.', 'warning')
         return redirect(url_for('necesidades.lista'))
+        
+    envio = EnvioTemasDirector.query.filter_by(plan_id=tema.plan_id, usuario_id=usuario.id).first()
+    if envio:
+        flash('Ya ha enviado sus temas para este plan. No puede eliminar.', 'warning')
+        return redirect(url_for('necesidades.lista'))
 
     tema.estado = 'ELIMINADO'
     db.session.commit()
     flash('Necesidad eliminada.', 'success')
     return redirect(url_for('necesidades.lista'))
+
+
+@necesidades_bp.route('/enviar-temas', methods=['POST'])
+@rol_required('DIRECTOR')
+def enviar_temas():
+    """Enviar todos los temas registrados por el director"""
+    usuario = get_usuario_actual()
+    plan = get_plan_vigente()
+    
+    if not plan or plan.estado != 'BORRADOR':
+        flash('No se pueden enviar los temas en este momento.', 'warning')
+        return redirect(url_for('necesidades.lista'))
+        
+    temas_actuales = TemaCapacitacion.query.filter_by(
+        usuario_id=usuario.id, plan_id=plan.id, estado='ACTIVO'
+    ).count()
+    max_temas = usuario.direccion.max_temas if usuario.direccion else 5
+    
+    if temas_actuales < max_temas:
+        flash(f'Debe registrar el total de {max_temas} temas antes de enviar.', 'warning')
+        return redirect(url_for('necesidades.lista'))
+        
+    envio = EnvioTemasDirector.query.filter_by(plan_id=plan.id, usuario_id=usuario.id).first()
+    if envio:
+        flash('Ya ha enviado sus temas anteriormente.', 'info')
+        return redirect(url_for('necesidades.lista'))
+        
+    nuevo_envio = EnvioTemasDirector(
+        plan_id=plan.id,
+        usuario_id=usuario.id
+    )
+    db.session.add(nuevo_envio)
+    db.session.commit()
+    
+    flash('Temas enviados exitosamente al Analista de Talento Humano.', 'success')
+    return redirect(url_for('necesidades.lista'))
+

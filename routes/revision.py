@@ -64,9 +64,14 @@ def ver_plan(plan_id):
         flash('No tiene acceso a este plan en su estado actual.', 'warning')
         return redirect(url_for('revision.lista_presidente'))
 
-    # Construir temas por dirección
+    # Construir temas por dirección (SOLO TEMAS SELECCIONADOS)
     temas_por_direccion = {}
     for tema in plan.temas.filter(TemaCapacitacion.estado == 'ACTIVO').order_by(TemaCapacitacion.fecha_creacion):
+        # Filtrar solo temas seleccionados
+        ts = tema.tema_seleccionado
+        if not ts or not ts.seleccionado:
+            continue
+            
         if tema.usuario and tema.usuario.direccion:
             dir_nombre = tema.usuario.direccion.nombre
             if dir_nombre not in temas_por_direccion:

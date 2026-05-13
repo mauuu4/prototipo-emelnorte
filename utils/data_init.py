@@ -175,7 +175,7 @@ def _seed_empleados():
 
 
 def _seed_plan_2025():
-    from models import PlanCapacitacion, TemaCapacitacion, TemaSeleccionado, ObservacionPlan, CapacitacionEjecutada, Participante, Empleado
+    from models import PlanCapacitacion, TemaCapacitacion, TemaSeleccionado, ObservacionPlan, CapacitacionEjecutada, Participante, Empleado, EmpresaCapacitadora, EvaluacionCapacitacion
     from datetime import date, timedelta
     import random
     
@@ -212,8 +212,6 @@ def _seed_plan_2025():
         for i in range(num):
             t = TemaCapacitacion(
                 nombre=f'Capacitación en {prefix} Nivel {i+1}',
-                etapa_funcional=f'Etapa {random.randint(1,5)}',
-                subetapa_funcional=f'Subetapa {random.randint(1,5)}',
                 num_participantes=random.randint(5, 20),
                 modalidad=random.choice(['VIRTUAL', 'PRESENCIAL', 'MIXTO']),
                 horas=random.randint(10, 80),
@@ -228,7 +226,6 @@ def _seed_plan_2025():
     for i in range(2):
         t = TemaCapacitacion(
             nombre=f'Curso General de Integración Corporativa {i+1}',
-            etapa_funcional='Etapa 1', subetapa_funcional='Subetapa 1',
             num_participantes=50, modalidad='MIXTO', horas=20,
             presupuesto_referencial=2000.0, mes_ejecucion=1,
             usuario_id=1, plan_id=plan.id, es_del_analista=True
@@ -265,6 +262,17 @@ def _seed_plan_2025():
         db.session.add(o)
     db.session.flush()
     
+    # 5.5 Empresas Capacitadoras
+    empresas = [
+        EmpresaCapacitadora(ruc='1001001001001', razon_social='Escuela de Negocios y Liderazgo S.A.', especialidad='Habilidades Blandas'),
+        EmpresaCapacitadora(ruc='2002002002001', razon_social='Instituto Técnico Energético Nacional', especialidad='Técnica / Electricidad'),
+        EmpresaCapacitadora(ruc='3003003003001', razon_social='Soluciones TI Avanzadas CIA LTDA', especialidad='Tecnología'),
+        EmpresaCapacitadora(ruc='4004004004001', razon_social='Centro de Capacitación Integral (CCI)', especialidad='Seguridad Integral'),
+    ]
+    for emp in empresas:
+        db.session.add(emp)
+    db.session.flush()
+
     # 6. Ejecuciones (60% de los seleccionados)
     temas_aprobados = [ts for ts in selecciones if ts.seleccionado]
     num_ejecuciones = int(len(temas_aprobados) * 0.60)
@@ -284,9 +292,7 @@ def _seed_plan_2025():
             valor_con_iva=ts.presupuesto_aprobado * 1.12,
             proceso_contratacion=random.choice(['Ínfima Cuantía', 'Subasta Inversa', 'Contratación Directa']),
             centro_costo=f'CC-2025-{i+1}',
-            etapa_funcional=ts.tema.etapa_funcional,
-            subetapa_funcional=ts.tema.subetapa_funcional,
-            empresa_capacitadora=f'Empresa {random.randint(1,5)}',
+            empresa_id=random.choice(empresas).id,
             tipo_certificacion=f'Tipo {random.randint(1,2)}',
             observaciones='Ejecutada exitosamente.'
         )
@@ -294,7 +300,7 @@ def _seed_plan_2025():
         ejecuciones.append(ej)
     db.session.flush()
     
-    # Participantes para las ejecuciones
+    # Participantes para las ejecuciones y Evaluaciones
     emps = Empleado.query.all()
     if emps:
         for ej in ejecuciones:
@@ -303,6 +309,18 @@ def _seed_plan_2025():
             for e in participantes_ej:
                 p = Participante(codigo=e.codigo, nombres=e.nombres, cedula=e.cedula, cargo=e.cargo, capacitacion_id=ej.id)
                 db.session.add(p)
+                db.session.flush()
+
+                # Generar evaluación aleatoria para el participante (80% de probabilidad de que haya evaluado)
+                if random.random() > 0.2:
+                    ev = EvaluacionCapacitacion(
+                        participante_id=p.id,
+                        capacitacion_id=ej.id,
+                        calificacion_curso=random.randint(3, 5),
+                        calificacion_empresa=random.randint(3, 5),
+                        comentarios='Buena capacitación.' if random.random() > 0.5 else 'Podría mejorar el material de apoyo.'
+                    )
+                    db.session.add(ev)
 
     db.session.commit()
     print(f"  [OK] Escenario masivo 2025 completado: {len(temas)} temas creados, {aprobados_count} aprobados, {num_ejecuciones} ejecutados.")

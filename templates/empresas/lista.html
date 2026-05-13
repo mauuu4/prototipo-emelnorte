@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Empresas Capacitadoras - SIGEERN{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-bar">Inicio / <span>Empresas Capacitadoras</span></div>
+
+<div class="pf-panel">
+    <div class="pf-panel-header" style="text-align:left; display:flex; align-items:center; justify-content:space-between;">
+        <span><i class="pi pi-briefcase" style="margin-right:6px;"></i> DIRECTORIO DE EMPRESAS CAPACITADORAS</span>
+        <button type="button" class="pf-btn pf-btn-success" style="font-size:0.78rem; padding:0.3rem 0.9rem;"
+                onclick="openModal('modalNuevaEmpresa')">
+            <i class="pi pi-plus"></i> Registrar Empresa
+        </button>
+    </div>
+    <div class="pf-panel-content">
+        
+        {% if empresas %}
+        <div class="table-responsive">
+            <table class="pf-datatable">
+                <thead>
+                    <tr>
+                        <th style="width:30px;">#</th>
+                        <th style="width:120px;">RUC</th>
+                        <th>Razón Social</th>
+                        <th>Contacto</th>
+                        <th>Especialidad</th>
+                        <th style="width:100px; text-align:center;">Calificación</th>
+                        <th style="width:80px; text-align:center;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in empresas %}
+                    <tr>
+                        <td class="text-muted-sm">{{ loop.index }}</td>
+                        <td>{{ emp.ruc }}</td>
+                        <td><strong>{{ emp.razon_social }}</strong></td>
+                        <td>
+                            <div style="font-size:0.85rem;">
+                                {% if emp.contacto_nombre %}<div><i class="pi pi-user" style="font-size:0.7rem;margin-right:3px;"></i> {{ emp.contacto_nombre }}</div>{% endif %}
+                                {% if emp.contacto_telefono %}<div><i class="pi pi-phone" style="font-size:0.7rem;margin-right:3px;"></i> {{ emp.contacto_telefono }}</div>{% endif %}
+                                {% if emp.correo %}<div><i class="pi pi-envelope" style="font-size:0.7rem;margin-right:3px;"></i> <a href="mailto:{{ emp.correo }}">{{ emp.correo }}</a></div>{% endif %}
+                                {% if not emp.contacto_nombre and not emp.contacto_telefono and not emp.correo %}<span class="text-muted-sm">Sin datos de contacto</span>{% endif %}
+                            </div>
+                        </td>
+                        <td>{{ emp.especialidad or '—' }}</td>
+                        <td style="text-align:center;">
+                            {% set rating = emp.get_promedio_calificacion() %}
+                            {% if rating > 0 %}
+                                <div style="font-size: 1.1rem; color: #eab308; font-weight: bold;">
+                                    {{ "%.1f"|format(rating) }} <i class="pi pi-star-fill" style="font-size: 0.9rem;"></i>
+                                </div>
+                            {% else %}
+                                <span class="text-muted-sm">Sin Eval.</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align:center; white-space:nowrap;">
+                            <button type="button" class="pf-icon-btn pf-icon-btn-edit" title="Editar"
+                                    onclick="abrirEditar({{ emp.id }}, '{{ emp.ruc|e }}', '{{ emp.razon_social|e }}', '{{ emp.contacto_nombre|e }}', '{{ emp.contacto_telefono|e }}', '{{ emp.correo|e }}', '{{ emp.especialidad|e }}')">
+                                <i class="pi pi-pencil"></i>
+                            </button>
+                            <form action="{{ url_for('empresas.eliminar', empresa_id=emp.id) }}" method="POST"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('¿Eliminar esta empresa del directorio?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="pf-icon-btn pf-icon-btn-delete" title="Eliminar">
+                                    <i class="pi pi-times"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align:center; padding:3rem 1rem; color:#aaa;">
+            <i class="pi pi-briefcase" style="font-size:3rem; display:block; margin-bottom:1rem;"></i>
+            <p style="font-size:0.9rem; color:#888;">No hay empresas capacitadoras registradas.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# MODAL: NUEVA EMPRESA #}
+<div class="pf-modal-overlay" id="modalNuevaEmpresa" style="display:none;">
+    <div class="pf-modal pf-modal-md">
+        <div class="pf-modal-header">
+            <h5><i class="pi pi-plus-circle" style="margin-right:8px;"></i> REGISTRAR EMPRESA</h5>
+            <button type="button" class="pf-modal-close" onclick="closeModal('modalNuevaEmpresa')">×</button>
+        </div>
+        <form method="POST" action="{{ url_for('empresas.nuevo') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="pf-modal-body">
+                <div class="pf-field">
+                    <label class="pf-label">RUC <span>*</span></label>
+                    <input type="text" class="pf-input" name="ruc" required maxlength="13" pattern="\d{13}" placeholder="13 dígitos">
+                </div>
+                <div class="pf-field">
+                    <label class="pf-label">Razón Social <span>*</span></label>
+                    <input type="text" class="pf-input" name="razon_social" required>
+                </div>
+                <div class="pf-field">
+                    <label class="pf-label">Especialidad</label>
+                    <input type="text" class="pf-input" name="especialidad" placeholder="Ej: Seguridad, Tecnología, etc.">
+                </div>
+                <hr style="margin: 1rem 0; border: 0; border-top: 1px solid #eee;">
+                <h6 style="color:#475569; margin-bottom: 10px; font-size: 0.9rem;">Datos de Contacto</h6>
+                <div class="pf-field">
+                    <label class="pf-label">Nombre del Contacto</label>
+                    <input type="text" class="pf-input" name="contacto_nombre">
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Teléfono</label>
+                            <input type="text" class="pf-input" name="contacto_telefono">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Correo Electrónico</label>
+                            <input type="email" class="pf-input" name="correo">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalNuevaEmpresa')">
+                    <i class="pi pi-times"></i> Cancelar
+                </button>
+                <button type="submit" class="pf-btn pf-btn-success">
+                    <i class="pi pi-save"></i> Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# MODAL: EDITAR EMPRESA #}
+<div class="pf-modal-overlay" id="modalEditarEmpresa" style="display:none;">
+    <div class="pf-modal pf-modal-md">
+        <div class="pf-modal-header">
+            <h5><i class="pi pi-pencil" style="margin-right:8px;"></i> EDITAR EMPRESA</h5>
+            <button type="button" class="pf-modal-close" onclick="closeModal('modalEditarEmpresa')">×</button>
+        </div>
+        <form method="POST" id="formEditar" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="pf-modal-body">
+                <div class="pf-field">
+                    <label class="pf-label">RUC <span>*</span></label>
+                    <input type="text" class="pf-input" name="ruc" id="edit_ruc" required maxlength="13" pattern="\d{13}">
+                </div>
+                <div class="pf-field">
+                    <label class="pf-label">Razón Social <span>*</span></label>
+                    <input type="text" class="pf-input" name="razon_social" id="edit_razon" required>
+                </div>
+                <div class="pf-field">
+                    <label class="pf-label">Especialidad</label>
+                    <input type="text" class="pf-input" name="especialidad" id="edit_esp">
+                </div>
+                <hr style="margin: 1rem 0; border: 0; border-top: 1px solid #eee;">
+                <h6 style="color:#475569; margin-bottom: 10px; font-size: 0.9rem;">Datos de Contacto</h6>
+                <div class="pf-field">
+                    <label class="pf-label">Nombre del Contacto</label>
+                    <input type="text" class="pf-input" name="contacto_nombre" id="edit_con">
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Teléfono</label>
+                            <input type="text" class="pf-input" name="contacto_telefono" id="edit_tel">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label class="pf-label">Correo Electrónico</label>
+                            <input type="email" class="pf-input" name="correo" id="edit_correo">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalEditarEmpresa')">
+                    <i class="pi pi-times"></i> Cancelar
+                </button>
+                <button type="submit" class="pf-btn pf-btn-primary">
+                    <i class="pi pi-save"></i> Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openModal(id) {
+    var el = document.getElementById(id);
+    el.style.display = 'flex';
+}
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+}
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('pf-modal-overlay')) {
+        e.target.style.display = 'none';
+    }
+});
+
+function abrirEditar(id, ruc, razon, contacto, telefono, correo, especialidad) {
+    document.getElementById('formEditar').action = '/empresas/' + id + '/editar';
+    document.getElementById('edit_ruc').value = ruc;
+    document.getElementById('edit_razon').value = razon;
+    document.getElementById('edit_con').value = contacto;
+    document.getElementById('edit_tel').value = telefono;
+    document.getElementById('edit_correo').value = correo;
+    document.getElementById('edit_esp').value = especialidad;
+    openModal('modalEditarEmpresa');
+}
+</script>
+{% endblock %}

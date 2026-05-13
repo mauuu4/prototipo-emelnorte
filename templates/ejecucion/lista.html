@@ -1,18 +1,66 @@
 {% extends "base.html" %}
 {% block title %}Ejecución de Capacitaciones - SIGEERN{% endblock %}
 
-{% block content %}
-<div class="breadcrumb-bar">Inicio / <span>Ejecución de Capacitaciones</span></div>
+{% block extra_css %}
+<style>
+/* Modern PrimeFaces Theme (Saga/Aura style) */
+:root {
+    --pf-primary: #3B82F6;
+    --pf-primary-hover: #2563EB;
+    --pf-border: #dee2e6;
+    --pf-header-bg: #f8f9fa;
+    --pf-header-text: #495057;
+    --pf-content-bg: #ffffff;
+    --pf-text: #495057;
+    --pf-radius: 6px;
+    --pf-shadow: 0 2px 4px -1px rgba(0,0,0,0.05);
+}
 
-<div class="pf-panel">
-    <div class="pf-panel-header" style="text-align:left; display:flex; align-items:center; justify-content:space-between;">
-        <span><i class="pi pi-play-circle" style="margin-right:6px;"></i>EJECUCIÓN DE CAPACITACIONES {% if anio_actual %}(Plan {{ anio_actual }}){% endif %}</span>
+body { color: var(--pf-text); }
+
+.ui-panel { border: 1px solid var(--pf-border); background: var(--pf-content-bg); margin-bottom: 1.5rem; border-radius: var(--pf-radius); box-shadow: var(--pf-shadow); }
+.ui-panel-titlebar { background: var(--pf-header-bg); color: var(--pf-header-text); font-weight: 600; padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--pf-border); border-top-left-radius: var(--pf-radius); border-top-right-radius: var(--pf-radius); font-size: 0.95rem; }
+.ui-panel-content { padding: 1.25rem; }
+
+.ui-accordion { margin-bottom: 1.5rem; border-radius: var(--pf-radius); box-shadow: var(--pf-shadow); background: var(--pf-content-bg); }
+.ui-accordion-header { background: var(--pf-header-bg); border: 1px solid var(--pf-border); padding: 0.75rem 1.25rem; font-weight: 600; color: var(--pf-header-text); cursor: pointer; display: flex; align-items: center; gap: 0.75rem; font-size: 0.95rem; margin-top: -1px; transition: background 0.2s; user-select: none; }
+.ui-accordion-header:first-child { border-top-left-radius: var(--pf-radius); border-top-right-radius: var(--pf-radius); margin-top: 0; }
+.ui-accordion-header:hover { background: #e9ecef; }
+.ui-accordion-content { border: 1px solid var(--pf-border); border-top: none; padding: 0; display: none; background: var(--pf-content-bg); }
+.ui-accordion-content.active { display: block; }
+
+.ui-datatable { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.ui-datatable th { background: var(--pf-header-bg); border-bottom: 1px solid var(--pf-border); padding: 0.75rem 1rem; color: var(--pf-header-text); font-weight: 600; text-align: left; }
+.ui-datatable td { border-bottom: 1px solid var(--pf-border); padding: 0.6rem 1rem; color: var(--pf-text); vertical-align: middle; }
+.ui-datatable tr:hover { background: #f8f9fa; }
+
+.ui-button { background: var(--pf-primary); color: white; border: 1px solid var(--pf-primary); padding: 0.5rem 0.8rem; font-size: 0.85rem; border-radius: var(--pf-radius); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; font-weight: 600; transition: all 0.2s; text-decoration: none; }
+.ui-button:hover { background: var(--pf-primary-hover); border-color: var(--pf-primary-hover); }
+.ui-button-success { background: #10B981; border-color: #10B981; } .ui-button-success:hover { background: #059669; border-color: #059669; }
+.ui-button-secondary { background: #6b7280; border-color: #6b7280; } .ui-button-secondary:hover { background: #4b5563; border-color: #4b5563; }
+.ui-button-icon-only { padding: 0.5rem; width: 34px; height: 34px; border-radius: 50%; }
+
+.ui-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+.ui-badge-info { background: #DBEAFE; color: #1E40AF; }
+.ui-badge-success { background: #D1FAE5; color: #065F46; }
+.ui-badge-warning { background: #FEF3C7; color: #92400E; }
+.ui-badge-extra { background: #F3E8FF; color: #6B21A8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-bar" style="margin-bottom: 1.5rem;">
+    Inicio / <span>Ejecución de Capacitaciones</span>
+</div>
+
+<div class="ui-panel">
+    <div class="ui-panel-titlebar" style="display: flex; align-items: center; justify-content: space-between;">
+        <span><i class="pi pi-play-circle" style="color:var(--pf-primary); margin-right:6px;"></i> Ejecución de Plan Anual {% if anio_actual %}({{ anio_actual }}){% endif %}</span>
         
-        <!-- Year filter -->
         {% if planes %}
         <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:0.85rem; color:#fff;">Año del Plan:</span>
-            <select class="pf-select" style="width:120px; padding:0.2rem 0.5rem; font-size:0.9rem; color:#0f172a;" onchange="window.location.href='?anio='+this.value">
+            <span style="font-size:0.85rem; font-weight:normal; color:#6c757d;">Año del Plan:</span>
+            <select style="padding:0.3rem 0.5rem; font-size:0.9rem; border:1px solid #ced4da; border-radius:4px; outline:none;" onchange="window.location.href='?anio='+this.value">
                 {% for p in planes %}
                 <option value="{{ p.anio }}" {% if p.anio == anio_actual %}selected{% endif %}>{{ p.anio }}</option>
                 {% endfor %}
@@ -20,68 +68,79 @@
         </div>
         {% endif %}
     </div>
-    <div class="pf-panel-content">
-        <div class="pf-infobox" style="margin-bottom:1rem;">
-            <i class="pi pi-info-circle"></i>
-            <div>Panel general de ejecución. Aquí puede ver todos los temas aprobados del plan seleccionado y registrar su ejecución.</div>
+    
+    <div class="ui-panel-content" style="background:#f8f9fa;">
+        <div style="background:#EFF6FF; border-left:4px solid #3B82F6; padding:1rem; color:#1E40AF; font-size:0.9rem; border-radius:4px; margin-bottom:1.5rem;">
+            <i class="pi pi-info-circle" style="margin-right:4px;"></i> Aquí puede registrar la ejecución de los temas aprobados del plan. Los temas están organizados por su <strong>Mes Previsto de Ejecución</strong>.
         </div>
 
-        {% if temas %}
-        <div class="table-responsive">
-            <table class="pf-datatable">
-                <thead>
-                    <tr>
-                        <th style="width:30px;">#</th>
-                        <th>Tema de Capacitación</th>
-                        <th>Dirección</th>
-                        <th>Mes Previsto</th>
-                        <th>Estado</th>
-                        <th style="text-align:center;">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ts in temas %}
-                    <tr>
-                        <td class="text-muted-sm">{{ loop.index }}</td>
-                        <td>
-                            <strong>{{ ts.tema.nombre }}</strong>
-                            <div class="text-muted-sm" style="font-size:0.75rem;">Presupuesto Aprobado: ${{ "%.2f"|format(ts.presupuesto_aprobado) }}</div>
-                        </td>
-                        <td style="font-size:0.82rem;">{{ ts.tema.get_direccion_nombre() }}</td>
-                        <td class="text-muted-sm">{{ ts.tema.get_nombre_mes() }}</td>
-                        <td>
-                            {% if ts.capacitacion_ejecutada %}
-                                <span class="pf-badge pf-badge-success">Ejecutado</span>
-                            {% else %}
-                                <span class="pf-badge pf-badge-warning">Pendiente</span>
-                            {% endif %}
-                        </td>
-                        <td style="text-align:center; white-space:nowrap;">
-                            {% if ts.capacitacion_ejecutada %}
-                                {% set cap = ts.capacitacion_ejecutada[0] %}
-                                <a href="{{ url_for('ejecucion.participantes', capacitacion_id=cap.id) }}"
-                                   class="pf-icon-btn pf-icon-btn-edit" title="Gestionar Participantes">
-                                    <i class="pi pi-users"></i>
-                                </a>
-                                <a href="{{ url_for('ejecucion.detalle', capacitacion_id=cap.id) }}"
-                                   class="pf-icon-btn" title="Ver Detalle" style="background:#f0f9ff; color:#0369a1;">
-                                    <i class="pi pi-eye"></i>
-                                </a>
-                            {% else %}
-                                <a href="{{ url_for('ejecucion.nuevo', tema_id=ts.id) }}" class="pf-btn pf-btn-success" style="font-size:0.75rem; padding:0.2rem 0.6rem;">
-                                    <i class="pi pi-play"></i> Ejecutar
-                                </a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        {% if temas_por_mes %}
+            <div class="ui-accordion">
+            {% for mes_clave, temas_mes in temas_por_mes.items() %}
+                <!-- mes_clave es (numero_mes, nombre_mes) -->
+                <div class="ui-accordion-header active" onclick="this.nextElementSibling.classList.toggle('active')">
+                    <i class="pi pi-calendar" style="color:#6c757d;"></i> Mes Previsto: {{ mes_clave[1].upper() }}
+                    <span class="ui-badge ui-badge-info" style="margin-left:auto;">{{ temas_mes|length }} Temas</span>
+                </div>
+                <div class="ui-accordion-content active">
+                    <table class="ui-datatable">
+                        <thead>
+                            <tr>
+                                <th style="width:40px; text-align:center;">#</th>
+                                <th>Tema de Capacitación</th>
+                                <th>Dirección</th>
+                                <th style="text-align:right;">Ppto. Aprobado</th>
+                                <th style="text-align:center;">Estado</th>
+                                <th style="text-align:center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ts in temas_mes %}
+                            <tr>
+                                <td style="text-align:center; color:#6c757d;">{{ loop.index }}</td>
+                                <td>
+                                    <strong style="color:#343a40; display:block;">{{ ts.tema.nombre }}</strong>
+                                    {% if ts.tema.estado == 'EXTRA_PLAN' %}
+                                        <span class="ui-badge ui-badge-extra" style="margin-top:4px;">Tema Extra-Plan (Gratuito)</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ ts.tema.get_direccion_nombre() }}</td>
+                                <td style="text-align:right; font-weight:600; color:#10B981;">
+                                    ${{ "%.2f"|format(ts.presupuesto_aprobado) }}
+                                </td>
+                                <td style="text-align:center;">
+                                    {% if ts.capacitacion_ejecutada %}
+                                        <span class="ui-badge ui-badge-success">Ejecutado</span>
+                                    {% else %}
+                                        <span class="ui-badge ui-badge-warning">Pendiente</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align:center; white-space:nowrap;">
+                                    {% if ts.capacitacion_ejecutada %}
+                                        {% set cap = ts.capacitacion_ejecutada[0] %}
+                                        <a href="{{ url_for('ejecucion.participantes', capacitacion_id=cap.id) }}" class="ui-button ui-button-secondary ui-button-icon-only" title="Gestionar Participantes y Certificados">
+                                            <i class="pi pi-users"></i>
+                                        </a>
+                                        <a href="{{ url_for('ejecucion.detalle', capacitacion_id=cap.id) }}" class="ui-button ui-button-icon-only" style="background:#e0f2fe; color:#0284c7; border-color:#e0f2fe;" title="Ver Detalle de Ejecución">
+                                            <i class="pi pi-eye"></i>
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('ejecucion.nuevo', tema_id=ts.id) }}" class="ui-button ui-button-success" style="padding:0.4rem 0.8rem; border-radius:4px;">
+                                            <i class="pi pi-play"></i> Ejecutar
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+            </div>
         {% else %}
-        <div style="text-align:center; padding:3rem 1rem; color:#aaa;">
-            <i class="pi pi-folder-open" style="font-size:3rem; display:block; margin-bottom:1rem;"></i>
-            <p style="font-size:0.9rem; color:#888;">No hay temas seleccionados para este año.</p>
+        <div style="text-align:center; padding: 4rem; color: #adb5bd;">
+            <i class="pi pi-inbox" style="font-size: 3rem; margin-bottom:1rem; display:block;"></i>
+            <p style="font-size:1.1rem; color:#6c757d; font-weight:600;">No hay temas seleccionados para este plan.</p>
         </div>
         {% endif %}
     </div>

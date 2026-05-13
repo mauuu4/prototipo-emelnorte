@@ -262,4 +262,70 @@
 </div>
 {% endif %}
 
+<!-- EVALUATION MODAL -->
+{% if stats.evaluaciones_pendientes and stats.evaluaciones_pendientes|length > 0 %}
+<div class="pf-modal-overlay active" id="modalEvaluacion" style="z-index: 9999;">
+    <div class="pf-modal">
+        <div class="pf-modal-header" style="background: var(--primary);">
+            <h5><i class="pi pi-star-fill"></i> Evaluación de Capacitación Pendiente</h5>
+            <button type="button" class="pf-modal-close" onclick="closeModal('modalEvaluacion')">&times;</button>
+        </div>
+        <form action="{{ url_for('auth.guardar_evaluacion') }}" method="POST">
+            <div class="pf-modal-body">
+                <div class="pf-infobox mb-3">
+                    <i class="pi pi-info-circle"></i>
+                    <div>
+                        <strong>Estimado/a {{ usuario.nombre }}</strong>, usted ha participado recientemente en una capacitación. 
+                        Por favor, ayúdenos evaluando la calidad de la misma.
+                    </div>
+                </div>
+                
+                {% set p = stats.evaluaciones_pendientes[0] %}
+                <input type="hidden" name="participante_id" value="{{ p.id }}">
+                <input type="hidden" name="capacitacion_id" value="{{ p.capacitacion_id }}">
+                
+                <h6 class="mb-3" style="color: var(--primary); font-weight: 700;">{{ p.capacitacion.get_nombre_tema() }}</h6>
+                
+                <div class="pf-field">
+                    <label class="pf-label">¿Cómo califica la calidad del curso / contenidos? <span>*</span></label>
+                    <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid var(--border); flex-wrap: wrap;">
+                        <label style="cursor: pointer;"><input type="radio" name="calificacion_curso" value="1" required> 1 (Malo)</label>
+                        <label style="cursor: pointer;"><input type="radio" name="calificacion_curso" value="2"> 2</label>
+                        <label style="cursor: pointer;"><input type="radio" name="calificacion_curso" value="3"> 3 (Regular)</label>
+                        <label style="cursor: pointer;"><input type="radio" name="calificacion_curso" value="4"> 4</label>
+                        <label style="cursor: pointer;"><input type="radio" name="calificacion_curso" value="5"> 5 (Excelente)</label>
+                    </div>
+                </div>
+
+                <div class="pf-field">
+                    <label class="pf-label">¿Cómo califica al capacitador / empresa capacitadora? <span>*</span></label>
+                    <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid var(--border); flex-wrap: wrap;">
+                        <label style="cursor: pointer;"><input type="radio" name="calificacion_empresa" value="1" required> 1 (Malo)</label>
+                        <label style="cursor: pointer;"><input type="radio" name="calificacion_empresa" value="2"> 2</label>
+                        <label style="cursor: pointer;"><input type="radio" name="calificacion_empresa" value="3"> 3 (Regular)</label>
+                        <label style="cursor: pointer;"><input type="radio" name="calificacion_empresa" value="4"> 4</label>
+                        <label style="cursor: pointer;"><input type="radio" name="calificacion_empresa" value="5"> 5 (Excelente)</label>
+                    </div>
+                </div>
+
+                <div class="pf-field mb-0">
+                    <label class="pf-label">Comentarios o Sugerencias Adicionales</label>
+                    <textarea class="pf-textarea" name="comentarios" placeholder="Opcional. Sus comentarios nos ayudan a mejorar." rows="3"></textarea>
+                </div>
+                
+                {% if stats.evaluaciones_pendientes|length > 1 %}
+                <div class="text-muted mt-2" style="font-size: 0.8rem; color: #6c757d;">
+                    <em>Tiene {{ stats.evaluaciones_pendientes|length - 1 }} evaluación(es) más pendiente(s).</em>
+                </div>
+                {% endif %}
+            </div>
+            <div class="pf-modal-footer">
+                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalEvaluacion')">Recordarme más tarde</button>
+                <button type="submit" class="pf-btn pf-btn-primary"><i class="pi pi-send"></i> Enviar Evaluación</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}

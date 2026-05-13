@@ -4,7 +4,7 @@ Rutas de Autenticación (Simulada)
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
-from models import Usuario, PlanCapacitacion
+from models import Usuario, PlanCapacitacion, Participante, EvaluacionCapacitacion
 from config import db
 
 auth_bp = Blueprint('auth', __name__)
@@ -126,7 +126,45 @@ def dashboard():
         stats['planes_pendientes'] = PlanCapacitacion.query.filter_by(estado='EN_APROBACION').count()
         stats['planes_aprobados'] = PlanCapacitacion.query.filter_by(estado='APROBADO').count()
 
+    # Verificar evaluaciones pendientes para el usuario (si es empleado / participante)
+    participaciones = Participante.query.filter_by(cedula=usuario.cedula, estado='ACTIVO').all()
+    evaluaciones_pendientes = []
+    for p in participaciones:
+        if p.capacitacion and p.capacitacion.estado == 'FINALIZADO' or p.capacitacion.estado == 'ACTIVO':
+            evaluacion = EvaluacionCapacitacion.query.filter_by(participante_id=p.id, capacitacion_id=p.capacitacion_id).first()
+            if not evaluacion:
+                evaluaciones_pendientes.append(p)
+    
+    stats['evaluaciones_pendientes'] = evaluaciones_pendientes
+
     return render_template('auth/dashboard.html', usuario=usuario, stats=stats)
+
+
+@auth_bp.route('/guardar-evaluacion', methods=['POST'])
+@login_required
+def guardar_evaluacion():
+    participante_id = request.form.get('participante_id')
+    capacitacion_id = request.form.get('capacitacion_id')
+    calificacion_curso = request.form.get('calificacion_curso')
+    calificacion_empresa = request.form.get('calificacion_empresa')
+    comentarios = request.form.get('comentarios')
+
+    if not participante_id or not capacitacion_id or not calificacion_curso or not calificacion_empresa:
+        flash('Por favor complete todos los campos de la evaluación.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
+    nueva_eval = EvaluacionCapacitacion(
+        participante_id=participante_id,
+        capacitacion_id=capacitacion_id,
+        calificacion_curso=int(calificacion_curso),
+        calificacion_empresa=int(calificacion_empresa),
+        comentarios=comentarios
+    )
+    db.session.add(nueva_eval)
+    db.session.commit()
+    
+    flash('¡Gracias por evaluar la capacitación! Su retroalimentación es muy valiosa.', 'success')
+    return redirect(url_for('auth.dashboard'))
 
 
 @auth_bp.route('/cambiar-usuario')

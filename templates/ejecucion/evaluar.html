@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación de Capacitación - EMELNORTE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/primeicons@6.0.1/primeicons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+        .eval-container { max-width: 600px; margin: 3rem auto; background: #fff; padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .eval-header { text-align: center; margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; }
+        .eval-header i { font-size: 2.5rem; color: #1a73e8; margin-bottom: 0.5rem; }
+        .eval-header h3 { font-weight: 700; color: #1e293b; font-size: 1.4rem; }
+        .eval-info { background: #f8fafc; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; border: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .rating-group { display: flex; gap: 10px; margin-top: 0.5rem; }
+        .rating-option { flex: 1; text-align: center; }
+        .rating-option input[type="radio"] { display: none; }
+        .rating-option label {
+            display: block; padding: 0.8rem 0; background: #fff; border: 2px solid #e2e8f0; border-radius: 6px;
+            cursor: pointer; font-weight: 600; color: #64748b; transition: all 0.2s;
+        }
+        .rating-option input[type="radio"]:checked + label {
+            background: #eff6ff; border-color: #3b82f6; color: #1d4ed8;
+        }
+        .pf-btn {
+            background: #1a73e8; color: #fff; border: none; padding: 0.8rem 1.5rem; border-radius: 4px;
+            font-weight: 600; width: 100%; font-size: 1rem; margin-top: 1.5rem; transition: background 0.2s;
+        }
+        .pf-btn:hover { background: #1557b0; }
+        .form-label { font-weight: 600; color: #334155; margin-bottom: 0.2rem; }
+        .form-text { font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem; display: block; }
+    </style>
+</head>
+<body>
+    <div class="eval-container">
+        <div class="eval-header">
+            <i class="pi pi-verified"></i>
+            <h3>Evaluación de Capacitación</h3>
+            <p style="color: #64748b; margin: 0;">Ayúdenos a mejorar nuestros programas de formación</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" style="font-size: 0.9rem;">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="eval-info">
+            <strong>Tema:</strong> {{ capacitacion.get_nombre_tema() }}<br>
+            <strong>Participante:</strong> {{ participante.nombres }}<br>
+            {% if capacitacion.empresa %}
+            <strong>Empresa Capacitadora:</strong> {{ capacitacion.empresa.razon_social }}
+            {% endif %}
+        </div>
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="mb-4">
+                <label class="form-label">1. ¿Cómo califica la calidad y relevancia del contenido del curso?</label>
+                <span class="form-text">1 = Deficiente, 5 = Excelente</span>
+                <div class="rating-group">
+                    {% for i in range(1, 6) %}
+                    <div class="rating-option">
+                        <input type="radio" id="curso_{{i}}" name="calificacion_curso" value="{{i}}" required>
+                        <label for="curso_{{i}}">{{i}}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">2. ¿Cómo califica el desempeño y dominio del facilitador/empresa?</label>
+                <span class="form-text">1 = Deficiente, 5 = Excelente</span>
+                <div class="rating-group">
+                    {% for i in range(1, 6) %}
+                    <div class="rating-option">
+                        <input type="radio" id="empresa_{{i}}" name="calificacion_empresa" value="{{i}}" required>
+                        <label for="empresa_{{i}}">{{i}}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">3. Comentarios y sugerencias (Opcional)</label>
+                <textarea class="form-control" name="comentarios" rows="3" placeholder="¿Qué le pareció el curso? ¿Qué mejoraríamos?"></textarea>
+            </div>
+
+            <button type="submit" class="pf-btn">
+                <i class="pi pi-send" style="margin-right: 8px;"></i> Enviar Evaluación
+            </button>
+        </form>
+    </div>
+</body>
+</html>

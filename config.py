@@ -39,12 +39,16 @@ def create_app():
     from routes.necesidades import necesidades_bp
     from routes.revision import revision_bp
     from routes.ejecucion import ejecucion_bp
+    from routes.reportes import reportes_bp
+    from routes.empresas import empresas_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(planes_bp)
     app.register_blueprint(necesidades_bp)
     app.register_blueprint(revision_bp)
     app.register_blueprint(ejecucion_bp)
+    app.register_blueprint(reportes_bp)
+    app.register_blueprint(empresas_bp)
 
     # Crear tablas y datos iniciales
     with app.app_context():

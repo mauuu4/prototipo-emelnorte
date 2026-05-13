@@ -1,424 +1,652 @@
 {% extends "base.html" %}
 {% block title %}Plan {{ plan.anio }} - SIGEERN{% endblock %}
-
 {% block extra_css %}
 <style>
-    .tema-row-selected { background: #f0fdf4 !important; }
-    .tema-row-discarded { background: #fff7f7 !important; opacity: 0.75; }
-    .presupuesto-total-bar {
-        background: #f8f9fa; border: 1px solid var(--border);
-        border-radius: 3px; padding: 0.6rem 1rem;
-        display: flex; align-items: center; justify-content: space-between;
-        font-size: 0.875rem; margin-bottom: 0.8rem;
-    }
-    .presupuesto-total-bar .valor { font-size: 1.1rem; font-weight: 700; }
-    .presupuesto-ok { color: #166534; }
-    .presupuesto-over { color: #dc3545; }
+/* Modern PrimeFaces Theme (Saga/Aura style) */
+:root {
+    --pf-primary: #3B82F6; /* Modern Soft Blue */
+    --pf-primary-hover: #2563EB;
+    --pf-border: #dee2e6; /* Softer border */
+    --pf-header-bg: #f8f9fa; /* Lighter background */
+    --pf-header-text: #495057;
+    --pf-content-bg: #ffffff;
+    --pf-text: #495057;
+    --pf-highlight-bg: #EFF6FF; /* Very soft blue for selection */
+    --pf-radius: 6px;
+    --pf-shadow: 0 2px 4px -1px rgba(0,0,0,0.05);
+}
+
+body { color: var(--pf-text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+/* Layout 2 columnas */
+.ui-layout-wrapper { display: flex; gap: 1.5rem; align-items: flex-start; }
+.ui-layout-main { flex: 1; min-width: 0; }
+.ui-layout-sidebar { width: 340px; position: sticky; top: 1.5rem; }
+@media (max-width: 992px) { .ui-layout-wrapper { flex-direction: column-reverse; } .ui-layout-sidebar { width: 100%; position: static; } }
+
+/* Panel general PrimeFaces Moderno */
+.ui-panel { border: 1px solid var(--pf-border); background: var(--pf-content-bg); margin-bottom: 1.5rem; border-radius: var(--pf-radius); box-shadow: var(--pf-shadow); }
+.ui-panel-titlebar { background: var(--pf-header-bg); color: var(--pf-header-text); font-weight: 600; padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--pf-border); border-top-left-radius: var(--pf-radius); border-top-right-radius: var(--pf-radius); font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; }
+.ui-panel-content { padding: 1.25rem; }
+
+/* Acordeón PrimeFaces Moderno */
+.ui-accordion { margin-bottom: 1.5rem; border-radius: var(--pf-radius); box-shadow: var(--pf-shadow); background: var(--pf-content-bg); }
+.ui-accordion-header { background: var(--pf-header-bg); border: 1px solid var(--pf-border); padding: 0.75rem 1.25rem; font-weight: 600; color: var(--pf-header-text); cursor: pointer; display: flex; align-items: center; gap: 0.75rem; font-size: 0.95rem; margin-top: -1px; transition: background 0.2s; user-select: none; }
+.ui-accordion-header:first-child { border-top-left-radius: var(--pf-radius); border-top-right-radius: var(--pf-radius); margin-top: 0; }
+.ui-accordion-header:last-child { border-bottom-left-radius: var(--pf-radius); border-bottom-right-radius: var(--pf-radius); }
+.ui-accordion-header.active:last-child { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.ui-accordion-header:hover { background: #e9ecef; }
+.ui-accordion-content { border: 1px solid var(--pf-border); border-top: none; padding: 0; display: none; background: var(--pf-content-bg); }
+.ui-accordion-content.active { display: block; }
+.ui-accordion-header .pi-chevron-right { transition: transform 0.2s; font-size: 0.8rem; color: #6c757d; }
+.ui-accordion-header.active .pi-chevron-right { transform: rotate(90deg); }
+
+/* DataTable PrimeFaces Moderno */
+.ui-datatable { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.ui-datatable th { background: var(--pf-header-bg); border-bottom: 1px solid var(--pf-border); padding: 0.75rem 1rem; color: var(--pf-header-text); font-weight: 600; text-align: left; white-space: nowrap; }
+.ui-datatable td { border-bottom: 1px solid var(--pf-border); padding: 0.6rem 1rem; color: var(--pf-text); vertical-align: middle; }
+.ui-datatable tr:last-child td { border-bottom: none; }
+.ui-datatable tr:hover { background: #f8f9fa; }
+.ui-datatable tr.ui-state-highlight { background: var(--pf-highlight-bg); }
+
+/* Botones PrimeFaces Modernos */
+.ui-button { background: var(--pf-primary); color: white; border: 1px solid var(--pf-primary); padding: 0.5rem 1rem; font-size: 0.9rem; border-radius: var(--pf-radius); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; transition: all 0.2s; text-decoration: none; }
+.ui-button:hover { background: var(--pf-primary-hover); border-color: var(--pf-primary-hover); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+.ui-button:disabled { opacity: 0.6; cursor: not-allowed; }
+.ui-button-success { background: #10B981; border-color: #10B981; } .ui-button-success:hover { background: #059669; border-color: #059669; box-shadow: 0 0 0 2px rgba(16,185,129,0.2); }
+.ui-button-secondary { background: #6b7280; border-color: #6b7280; } .ui-button-secondary:hover { background: #4b5563; border-color: #4b5563; }
+.ui-button-text { background: transparent; border: 1px solid transparent; color: #ef4444; padding: 0.25rem 0.5rem; } .ui-button-text:hover { background: #fef2f2; }
+.ui-button-text.info { color: var(--pf-primary); } .ui-button-text.info:hover { background: #eff6ff; }
+
+/* Checkbox PrimeFaces Moderno */
+.ui-chkbox-wrapper { display: inline-flex; align-items: center; cursor: pointer; margin: 0; }
+.ui-chkbox-box { width: 22px; height: 22px; border: 2px solid #ced4da; background: #ffffff; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.ui-chkbox-icon { color: transparent; font-size: 0.85rem; font-weight: bold; transition: transform 0.2s; transform: scale(0); }
+.ui-chkbox-wrapper input:checked + .ui-chkbox-box { border-color: var(--pf-primary); background: var(--pf-primary); }
+.ui-chkbox-wrapper input:checked + .ui-chkbox-box .ui-chkbox-icon { color: #ffffff; transform: scale(1); }
+.ui-chkbox-wrapper:hover .ui-chkbox-box { border-color: #adb5bd; }
+.ui-chkbox-wrapper input:checked:hover + .ui-chkbox-box { background: var(--pf-primary-hover); border-color: var(--pf-primary-hover); }
+
+/* Inputs PrimeFaces Modernos */
+.ui-inputtext { border: 1px solid #ced4da; padding: 0.5rem 0.75rem; font-size: 0.9rem; border-radius: 4px; width: 100%; outline: none; transition: border-color 0.2s, box-shadow 0.2s; color: #495057; font-family: inherit; }
+.ui-inputtext:focus { border-color: var(--pf-primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+.ui-inputtext:disabled { background: #e9ecef; }
+
+/* Progress Bar Moderno */
+.ui-progressbar { border-radius: 4px; height: 12px; background: #e9ecef; position: relative; overflow: hidden; margin: 12px 0; }
+.ui-progressbar-value { background: #10B981; height: 100%; transition: width 0.4s ease, background-color 0.4s ease; }
+.ui-progressbar-value.danger { background: #EF4444; }
+
+/* Dialog Modal PrimeFaces Moderno */
+.ui-dialog-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); z-index: 1000; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s; }
+.ui-dialog-mask.show { display: flex; opacity: 1; }
+.ui-dialog { background: var(--pf-content-bg); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); max-width: 90%; transform: scale(0.95); transition: transform 0.2s; overflow: hidden; }
+.ui-dialog-mask.show .ui-dialog { transform: scale(1); }
+.ui-dialog-titlebar { background: #fff; border-bottom: 1px solid var(--pf-border); padding: 1rem 1.5rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; color: #0f172a; font-size: 1.1rem; }
+.ui-dialog-content { padding: 1.5rem; font-size: 0.95rem; max-height: 70vh; overflow-y: auto; }
+.ui-dialog-footer { background: var(--pf-header-bg); padding: 1rem 1.5rem; text-align: right; border-top: 1px solid var(--pf-border); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+/* Utility */
+.ui-messages-warn { border-left: 4px solid #F59E0B; background: #FEF3C7; color: #92400E; padding: 1rem; border-radius: var(--pf-radius); font-size: 0.9rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 12px; }
+.ui-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+.ui-badge-info { background: #DBEAFE; color: #1E40AF; }
+.ui-badge-success { background: #D1FAE5; color: #065F46; }
+.ui-badge-warning { background: #FEF3C7; color: #92400E; }
+.ui-badge-danger { background: #FEE2E2; color: #991B1B; }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Breadcrumb -->
-<div class="breadcrumb-bar">
-    Inicio / <a href="{{ url_for('planes.lista') }}" style="color: var(--primary);">Planes</a> / <span>Plan {{ plan.anio }}</span>
+<div class="breadcrumb-bar" style="margin-bottom: 1.5rem;">
+    Inicio / <a href="{{ url_for('planes.lista') }}">Planes</a> / <span>Plan {{ plan.anio }}</span>
 </div>
 
-<!-- ─── ALERTA PRESUPUESTO ─── -->
-{% if supera_presupuesto %}
-<div class="pf-dangerbox">
-    <i class="pi pi-exclamation-triangle" style="font-size: 1.1rem;"></i>
-    <div>
-        <strong>¡Alerta de Presupuesto!</strong> El total seleccionado
-        (${{ "%.2f"|format(total_seleccionado) }}) supera el monto referencial
-        (${{ "%.2f"|format(plan.monto_referencial) }}) por
-        <strong>${{ "%.2f"|format(total_seleccionado - plan.monto_referencial) }}</strong>.
-        Revise los temas seleccionados o ajuste el presupuesto.
+<div id="main-container">
+<!-- INFO DEL PLAN -->
+<div class="ui-panel">
+    <div class="ui-panel-titlebar">
+        <span style="display:flex; align-items:center; gap:8px;">
+            <i class="pi pi-calendar" style="color:var(--pf-primary);"></i> Plan de Capacitación {{ plan.anio }}
+        </span>
+        <span class="ui-badge {% if plan.estado == 'BORRADOR' %}ui-badge-warning{% else %}ui-badge-info{% endif %}">{{ plan.estado.replace('_',' ') }}</span>
+    </div>
+    <div class="ui-panel-content" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1.5rem;">
+        <div>
+            <div style="font-size:0.85rem; color:#6c757d; margin-bottom:4px;">Creado el: <strong style="color:#495057;">{{ plan.fecha_creacion.strftime('%d/%m/%Y') }}</strong></div>
+            <div style="font-size:0.85rem; color:#6c757d;">Ppto Referencial: <strong style="color:#495057;">${{ "%.2f"|format(plan.monto_referencial) }}</strong></div>
+        </div>
+        <div style="background:var(--pf-header-bg); border:1px solid var(--pf-border); padding:0.75rem 1rem; border-radius:var(--pf-radius); display:flex; align-items:center; gap:0.75rem;">
+            <span style="font-weight:600; font-size:0.9rem; color:#495057;">Presupuesto Aprobado:</span>
+            {% if plan.is_editable() %}
+            <form method="POST" action="{{ url_for('planes.actualizar_presupuesto_aprobado', plan_id=plan.id) }}" style="display:inline-flex; align-items:center; gap:0.5rem;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <span style="font-weight:600; color:#adb5bd;">$</span>
+                <input type="number" class="ui-inputtext" name="monto_aprobado" step="0.01" min="0" required
+                       value="{{ plan.monto_aprobado or plan.monto_referencial }}" style="width:120px; text-align:right; font-weight:600;">
+                <button type="submit" class="ui-button" style="padding:0.4rem 0.6rem;" title="Guardar"><i class="pi pi-save"></i></button>
+            </form>
+            {% else %}
+            <span style="font-size:1.2rem; font-weight:700; color:#10B981;">${{ "%.2f"|format(plan.monto_aprobado or plan.monto_referencial) }}</span>
+            {% endif %}
+        </div>
     </div>
 </div>
-{% endif %}
 
-<div class="row g-3">
-    <!-- ─── COLUMNA IZQUIERDA: Info + Acciones ─── -->
-    <div class="col-md-3">
-        <!-- Info del Plan -->
-        <div class="pf-panel">
-            <div class="pf-panel-header">Información del Plan</div>
-            <div class="pf-panel-content" style="font-size: 0.875rem;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span>Año:</span> <strong>{{ plan.anio }}</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span>Estado:</span>
-                    <span class="estado-badge estado-{{ plan.estado }}">{{ plan.estado.replace('_', ' ') }}</span>
-                </div>
-                <hr class="divider">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span>Monto Ref.:</span> <strong>${{ "%.2f"|format(plan.monto_referencial) }}</strong>
-                </div>
-                {% if plan.monto_aprobado %}
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span>Monto Apr.:</span> <strong style="color: var(--success);">${{ "%.2f"|format(plan.monto_aprobado) }}</strong>
-                </div>
-                {% endif %}
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span>Total Sel.:</span>
-                    <strong class="{{ 'presupuesto-over' if supera_presupuesto else 'presupuesto-ok' }}">
-                        ${{ "%.2f"|format(total_seleccionado) }}
-                    </strong>
-                </div>
-                <hr class="divider">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span>Temas:</span> <strong>{{ plan.get_temas_count() }}</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>Seleccionados:</span> <strong>{{ plan.get_temas_seleccionados_count() }}</strong>
-                </div>
-                <hr class="divider">
-                <div class="text-muted-sm">Creado: {{ plan.fecha_creacion.strftime('%d/%m/%Y') }}</div>
-                {% if plan.fecha_envio_jefe %}
-                <div class="text-muted-sm">Enviado: {{ plan.fecha_envio_jefe.strftime('%d/%m/%Y') }}</div>
-                {% endif %}
+
+
+<div class="ui-layout-wrapper">
+    <!-- COLUMNA PRINCIPAL (Acordeones) -->
+    <div class="ui-layout-main">
+
+        {% if temas_extra %}
+        <div class="ui-panel" style="border-top: 4px solid var(--pf-primary); margin-bottom: 1.5rem;">
+            <div class="ui-panel-titlebar" style="background:#fff; border-bottom:1px solid var(--pf-border);">
+                <span style="font-size:1.05rem;"><i class="pi pi-plus-circle" style="color:var(--pf-primary); margin-right:6px;"></i> Temas Extra-Plan (No Planificados)</span>
             </div>
-        </div>
-
-        <!-- Acciones del Analista -->
-        {% if plan.is_editable() %}
-        <div class="pf-panel">
-            <div class="pf-panel-header">Acciones</div>
-            <div class="pf-panel-content" style="display: flex; flex-direction: column; gap: 8px;">
-
-                <!-- RN-04: Presupuesto aprobado -->
-                <form action="{{ url_for('planes.actualizar_presupuesto_aprobado', plan_id=plan.id) }}" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <label class="pf-label">Presupuesto Aprobado ($)</label>
-                    <div style="display: flex; gap: 4px;">
-                        <input type="number" class="pf-input" name="monto_aprobado"
-                               value="{{ plan.monto_aprobado or '' }}"
-                               step="0.01" min="0" placeholder="{{ '%.2f'|format(plan.monto_referencial) }}"
-                               style="flex: 1;">
-                        <button type="submit" class="pf-icon-btn pf-icon-btn-check" title="Guardar">
-                            <i class="pi pi-check"></i>
-                        </button>
-                    </div>
-                </form>
-
-                <hr class="divider">
-
-                <!-- RN-04: Agregar tema -->
-                <button class="pf-btn pf-btn-primary" onclick="openModal('modalNuevaTema')" style="width: 100%; justify-content: center;">
-                    <i class="pi pi-plus"></i> Agregar Tema
-                </button>
-
-                <!-- RN-06: Enviar a revisión -->
-                {% if plan.get_temas_seleccionados_count() > 0 %}
-                <form action="{{ url_for('planes.enviar_revision', plan_id=plan.id) }}" method="POST"
-                      onsubmit="return confirm('¿Enviar el plan a revisión del Jefe de Personal?\n\nEl plan cambiará a estado \"En Revisión\".');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="pf-btn pf-btn-success" style="width: 100%; justify-content: center;">
-                        <i class="pi pi-send"></i> Enviar a Revisión
-                    </button>
-                </form>
-                {% else %}
-                <button class="pf-btn pf-btn-success" disabled style="width: 100%; justify-content: center; opacity: 0.5; cursor: not-allowed;">
-                    <i class="pi pi-send"></i> Enviar a Revisión
-                </button>
-                <div class="text-muted-sm" style="text-align: center;">Seleccione al menos un tema</div>
-                {% endif %}
-            </div>
-        </div>
-        {% elif plan.is_blocked() %}
-        <div class="pf-panel">
-            <div class="pf-panel-header" style="background: #166534;">Plan Aprobado</div>
-            <div class="pf-panel-content">
-                <div style="text-align: center; color: #166534; font-size: 0.875rem;">
-                    <i class="pi pi-lock" style="font-size: 1.5rem; display: block; margin-bottom: 6px;"></i>
-                    <strong>Plan bloqueado</strong><br>
-                    <span class="text-muted-sm">Solo lectura</span>
-                </div>
-            </div>
-        </div>
-        {% else %}
-        <div class="pf-panel">
-            <div class="pf-panel-header">Estado del Plan</div>
-            <div class="pf-panel-content">
-                <span class="estado-badge estado-{{ plan.estado }}" style="display: block; text-align: center;">
-                    {{ plan.estado.replace('_', ' ') }}
-                </span>
-                <div class="text-muted-sm" style="margin-top: 6px; text-align: center;">
-                    El plan está en proceso de revisión/aprobación.
-                </div>
+            <div class="ui-panel-content" style="padding:0;">
+                <table class="ui-datatable">
+                    <thead>
+                        <tr>
+                            <th style="width:30px; text-align:center;">#</th>
+                            <th>Tema de Capacitación</th>
+                            <th>Modalidad</th>
+                            <th style="text-align:center;">Horas</th>
+                            <th style="text-align:center;">Mes</th>
+                            <th style="text-align:center;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tema in temas_extra %}
+                        <tr>
+                            <td style="text-align:center; color:#6c757d;">{{ loop.index }}</td>
+                            <td><strong style="color:var(--pf-primary);">{{ tema.nombre }}</strong></td>
+                            <td><span class="ui-badge ui-badge-info">{{ tema.modalidad }}</span></td>
+                            <td style="text-align:center;">{{ tema.horas }}</td>
+                            <td style="text-align:center;">{{ tema.get_nombre_mes()[:3] }}</td>
+                            <td style="text-align:center;"><span class="ui-badge ui-badge-success">Listo para Ejecución</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
         {% endif %}
 
-        <!-- Observaciones rápidas -->
-        <div class="pf-panel">
-            <div class="pf-panel-header">Observaciones</div>
-            <div class="pf-panel-content" style="max-height: 220px; overflow-y: auto;">
-                {% if observaciones %}
-                    {% for obs in observaciones %}
-                    <div class="obs-card obs-{{ obs.tipo_observacion }}">
-                        <div>{{ obs.observacion[:100] }}{% if obs.observacion|length > 100 %}...{% endif %}</div>
-                        <div class="text-muted-sm" style="margin-top: 2px;">
-                            {{ obs.autor }} — {{ obs.fecha_creacion.strftime('%d/%m/%Y') }}
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="text-muted-sm">Sin observaciones.</div>
-                {% endif %}
-            </div>
+        <div class="ui-accordion">
+            {% if temas_por_direccion %}
+                {% for dir_nombre, data in temas_por_direccion.items() %}
+                <div class="ui-accordion-header {% if loop.first %}active{% endif %}" onclick="toggleAccordion(this)">
+                    <i class="pi pi-chevron-right"></i> {{ dir_nombre }}
+                    <span class="ui-badge ui-badge-info" style="margin-left:auto;">{{ data.temas|length }} temas</span>
+                </div>
+                <div class="ui-accordion-content {% if loop.first %}active{% endif %}">
+                    <table class="ui-datatable">
+                        <thead>
+                            <tr>
+                                <th style="width:40px; text-align:center;"></th>
+                                <th>Tema de Capacitación</th>
+                                <th style="width:90px;">Modalidad</th>
+                                <th style="width:60px; text-align:center;">Horas</th>
+                                <th style="width:60px; text-align:center;">Partic.</th>
+                                <th style="width:90px; text-align:right;">Ppto. Ref.</th>
+                                <th style="width:80px; text-align:center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tema in data.temas %}
+                            {% set ts = tema.tema_seleccionado %}
+                            <tr class="{% if ts and ts.seleccionado %}ui-state-highlight{% endif %}" id="row-{{ tema.id }}">
+                                <td style="text-align:center;">
+                                    {% if plan.is_editable() %}
+                                    <label class="ui-chkbox-wrapper">
+                                        <input type="checkbox" style="display:none;" 
+                                               onchange="toggleTemaAjax({{ plan.id }}, {{ tema.id }}, this)"
+                                               {% if ts and ts.seleccionado %}checked{% endif %}>
+                                        <div class="ui-chkbox-box"><i class="pi pi-check ui-chkbox-icon"></i></div>
+                                    </label>
+                                    {% else %}
+                                        {% if ts and ts.seleccionado %}<i class="pi pi-check" style="color:#10B981; font-weight:bold;"></i>
+                                        {% else %}<i class="pi pi-times" style="color:#EF4444; font-weight:bold;"></i>{% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div style="font-weight:600; color:#343a40;">{{ tema.nombre }}</div>
+                                    {% if tema.es_del_analista %}<div style="margin-top:2px;"><span class="ui-badge ui-badge-warning">Agregado por ti</span></div>{% endif %}
+                                </td>
+                                <td>
+                                    <span class="ui-badge {% if tema.modalidad == 'PRESENCIAL' %}ui-badge-success{% elif tema.modalidad == 'VIRTUAL' %}ui-badge-info{% else %}ui-badge-warning{% endif %}">
+                                        {{ tema.modalidad }}
+                                    </span>
+                                </td>
+                                <td style="text-align:center;">{{ tema.horas }}h</td>
+                                <td style="text-align:center;">{{ tema.num_participantes }}</td>
+                                <td style="text-align:right; font-weight:600; color:#495057;">${{ "%.0f"|format(tema.presupuesto_referencial) }}</td>
+                                <td style="text-align:center;">
+                                    {% if (plan.is_editable() or plan.estado == 'APROBADO') and tema.es_del_analista %}
+                                    <div style="display:flex; justify-content:center; gap:4px;">
+                                        <!-- Botón Editar -->
+                                        <button type="button" class="ui-button ui-button-text info" 
+                                                onclick="openEditModal({{ tema.id }}, '{{ tema.nombre|escape }}', {{ tema.usuario.direccion_id }}, '{{ tema.modalidad }}', {{ tema.num_participantes }}, {{ tema.horas }}, {{ tema.presupuesto_referencial }}, {{ tema.mes_ejecucion }})"
+                                                title="Editar Tema">
+                                            <i class="pi pi-pencil"></i>
+                                        </button>
+                                        <!-- Botón Eliminar (Mantenemos submit normal para eliminar ya que es menos frecuente) -->
+                                        <form action="{{ url_for('planes.eliminar_tema', plan_id=plan.id, tema_id=tema.id) }}" method="POST" onsubmit="return confirm('¿Eliminar este tema?');" style="margin:0;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="ui-button ui-button-text" title="Eliminar Tema">
+                                                <i class="pi pi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="padding:3rem 2rem; text-align:center; color:#6c757d;">
+                    <i class="pi pi-inbox" style="font-size:3rem; color:#dee2e6; margin-bottom:1rem; display:block;"></i>
+                    <div style="font-weight:600; font-size:1.1rem; color:#495057;">No hay temas propuestos</div>
+                    <div style="font-size:0.9rem;">Los directores aún no han registrado necesidades.</div>
+                </div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- ─── COLUMNA DERECHA: Temas ─── -->
-    <div class="col-md-9">
-        <div class="pf-panel">
-            <div class="pf-panel-header" style="text-align: left;">
-                <i class="pi pi-list" style="margin-right: 6px;"></i>
-                TEMAS DE CAPACITACIÓN REGISTRADOS
+    <!-- SIDEBAR (Panel de Resumen) -->
+    <div class="ui-layout-sidebar">
+        
+        {% if plan.is_editable() or plan.estado == 'APROBADO' %}
+        <button class="ui-button" style="width:100%; margin-bottom:1.5rem; padding:0.75rem;" onclick="openNewModal()">
+            <i class="pi pi-plus-circle"></i> Agregar Tema Adicional
+        </button>
+        {% endif %}
+
+        <div class="ui-panel" style="border-top: 4px solid var(--pf-primary);">
+            <div class="ui-panel-titlebar" style="background:#fff; border-bottom:none; padding-bottom:0;">
+                <span style="font-size:1.05rem;">Resumen de Selección</span>
             </div>
-            <div class="pf-panel-content">
+            <div class="ui-panel-content">
+                <table style="width:100%; font-size:0.9rem; margin-bottom:1rem; color:#495057;">
+                    <tr><td style="padding:6px 0;">Temas Seleccionados:</td><td style="text-align:right; font-weight:600; color:#212529;" id="lblCount">{{ plan.get_temas_seleccionados_count() }}</td></tr>
+                    <tr><td style="padding:6px 0;">Presupuesto Aprobado:</td><td style="text-align:right; font-weight:600; color:#212529;">${{ "%.0f"|format(plan.monto_aprobado or plan.monto_referencial) }}</td></tr>
+                    <tr><td style="padding:10px 0 6px 0; border-top:1px dashed var(--pf-border); font-weight:600;">Total Seleccionado:</td>
+                        <td style="text-align:right; font-weight:700; font-size:1.2rem; border-top:1px dashed var(--pf-border); padding-top:10px; color:#212529;" id="lblTotal">${{ "%.0f"|format(plan.get_total_seleccionado()) }}</td></tr>
+                </table>
 
-                {% if temas_por_direccion %}
-                    {% for dir_nombre, data in temas_por_direccion.items() %}
-                    <div style="margin-bottom: 1.5rem;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                            <i class="pi pi-building" style="color: var(--primary);"></i>
-                            <strong style="color: var(--primary);">{{ dir_nombre }}</strong>
-                            <span style="font-size: 0.75rem; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 10px; font-weight: 600;">
-                                {{ data.temas|length }} / {{ data.max_temas }} temas
-                            </span>
-                        </div>
+                {% set total = plan.get_total_seleccionado() %}
+                {% set pres = plan.monto_aprobado or plan.monto_referencial %}
+                {% set pct = ((total / pres) * 100) if pres > 0 else 0 %}
 
-                        <div class="table-responsive">
-                            <table class="pf-datatable" style="font-size: 0.82rem;">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Nombre del Tema</th>
-                                        <th>Etapa Funcional</th>
-                                        <th>Modalidad</th>
-                                        <th>Hrs</th>
-                                        <th>Part.</th>
-                                        <th>Mes</th>
-                                        <th>Ppto. Ref.</th>
-                                        <th>Ppto. Apr.</th>
-                                        <th style="text-align:center; width: 100px;">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for tema in data.temas %}
-                                    {% set ts = tema.tema_seleccionado %}
-                                    <tr class="{% if ts and ts.seleccionado %}tema-row-selected{% elif ts and not ts.seleccionado %}tema-row-discarded{% endif %}">
-                                        <td class="text-muted-sm">{{ loop.index }}</td>
-                                        <td>
-                                            <strong>{{ tema.nombre }}</strong>
-                                            {% if tema.es_del_analista %}
-                                            <span style="font-size: 0.68rem; background: #dbeafe; color: #1d4ed8; padding: 1px 5px; border-radius: 2px; margin-left: 4px;">Analista</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <span title="{{ tema.subetapa_funcional }}">{{ tema.etapa_funcional[:20] }}{% if tema.etapa_funcional|length > 20 %}...{% endif %}</span>
-                                        </td>
-                                        <td>
-                                            <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 2px;
-                                                {% if tema.modalidad == 'VIRTUAL' %}background: #dbeafe; color: #1d4ed8;
-                                                {% elif tema.modalidad == 'PRESENCIAL' %}background: #dcfce7; color: #166534;
-                                                {% else %}background: #fef3c7; color: #92400e;{% endif %}">
-                                                {{ tema.modalidad }}
-                                            </span>
-                                        </td>
-                                        <td>{{ tema.horas }}</td>
-                                        <td>{{ tema.num_participantes }}</td>
-                                        <td>{{ tema.get_nombre_mes()[:3] }}</td>
-                                        <td>${{ "%.0f"|format(tema.presupuesto_referencial) }}</td>
-                                        <td>
-                                            {% if ts and ts.seleccionado %}
-                                                {% if plan.is_editable() %}
-                                                <form action="{{ url_for('planes.actualizar_presupuesto_tema', plan_id=plan.id, tema_id=tema.id) }}"
-                                                      method="POST" style="display: flex; gap: 3px;">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                    <input type="number" name="presupuesto_aprobado"
-                                                           class="pf-input" style="width: 75px; padding: 3px 5px; font-size: 0.78rem;"
-                                                           value="{{ ts.presupuesto_aprobado or tema.presupuesto_referencial }}"
-                                                           step="0.01" min="0">
-                                                    <button type="submit" class="pf-icon-btn pf-icon-btn-check" title="Actualizar">
-                                                        <i class="pi pi-check"></i>
-                                                    </button>
-                                                </form>
-                                                {% else %}
-                                                ${{ "%.0f"|format(ts.presupuesto_aprobado or 0) }}
-                                                {% endif %}
-                                            {% else %}
-                                                <span class="text-muted-sm">—</span>
-                                            {% endif %}
-                                        </td>
-                                        <td style="text-align: center; white-space: nowrap;">
-                                            <!-- Toggle selección -->
-                                            {% if ts %}
-                                            <form action="{{ url_for('planes.toggle_tema', plan_id=plan.id, tema_id=tema.id) }}"
-                                                  method="POST" style="display: inline;">
-                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                {% if plan.is_editable() %}
-                                                <button type="submit"
-                                                        class="pf-icon-btn {% if ts.seleccionado %}pf-icon-btn-check{% else %}pf-icon-btn-uncheck{% endif %}"
-                                                        title="{{ 'Descartar' if ts.seleccionado else 'Seleccionar' }}">
-                                                    <i class="pi {% if ts.seleccionado %}pi-check-circle{% else %}pi-circle{% endif %}"></i>
-                                                </button>
-                                                {% else %}
-                                                <span class="pf-icon-btn {% if ts.seleccionado %}pf-icon-btn-check{% else %}pf-icon-btn-uncheck{% endif %}"
-                                                      style="cursor: default;">
-                                                    <i class="pi {% if ts.seleccionado %}pi-check-circle{% else %}pi-circle{% endif %}"></i>
-                                                </span>
-                                                {% endif %}
-                                            </form>
-                                            {% endif %}
+                <div class="ui-progressbar">
+                    <div id="progressBar" class="ui-progressbar-value {% if pct > 100 %}danger{% endif %}" style="width:{{ [pct, 100]|min }}%;"></div>
+                </div>
+                <div style="text-align:center; font-size:0.85rem; color:#6c757d; font-weight:600;" id="lblPct">{{ "%.1f"|format(pct) }}% Consumido</div>
 
-                                            <!-- Eliminar (solo si editable) -->
-                                            {% if plan.is_editable() %}
-                                            <form action="{{ url_for('planes.eliminar_tema', plan_id=plan.id, tema_id=tema.id) }}"
-                                                  method="POST" style="display: inline;"
-                                                  onsubmit="return confirm('¿Eliminar el tema «{{ tema.nombre }}»?');">
-                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                <button type="submit" class="pf-icon-btn pf-icon-btn-delete" title="Eliminar">
-                                                    <i class="pi pi-times"></i>
-                                                </button>
-                                            </form>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    {% endfor %}
-
+                {% if plan.is_editable() %}
+                <form action="{{ url_for('planes.enviar_revision', plan_id=plan.id) }}" method="POST" onsubmit="return confirm('¿Enviar el plan a revisión del Jefe de Personal?');" style="margin-top:1.5rem;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="ui-button ui-button-success" style="width:100%; padding:0.75rem;" id="btnEnviar" {% if plan.get_temas_seleccionados_count() == 0 %}disabled{% endif %}>
+                        <i class="pi pi-send"></i> Enviar a Revisión
+                    </button>
+                </form>
+                {% elif plan.estado == 'APROBADO' %}
+                <div style="margin-top:1.5rem; display:flex; flex-direction:column; gap:10px;">
+                    <a href="{{ url_for('ejecucion.lista', anio=plan.anio) }}" class="ui-button ui-button-success" style="width:100%; padding:0.75rem;">
+                        <i class="pi pi-play-circle" style="font-size:1.1rem;"></i> Ir a Ejecución de Plan
+                    </a>
+                    <button class="ui-button ui-button-secondary" style="width:100%; padding:0.75rem;" onclick="openModalExtraPlan()">
+                        <i class="pi pi-plus"></i> Registrar Tema Gratuito Extra
+                    </button>
+                </div>
                 {% else %}
-                <div style="text-align: center; padding: 3rem 1rem; color: #888;">
-                    <i class="pi pi-inbox" style="font-size: 2.5rem; display: block; margin-bottom: 1rem;"></i>
-                    <p>No hay temas registrados en este plan.</p>
-                    <p class="text-muted-sm">Los directores deben registrar sus necesidades y el Analista puede agregar temas adicionales.</p>
+                <div style="background:#f8f9fa; padding:0.75rem; border-radius:4px; text-align:center; font-size:0.85rem; color:#6c757d; font-weight:600; margin-top:1.5rem;">
+                    <i class="pi pi-lock"></i> Plan bloqueado (Solo lectura)
                 </div>
                 {% endif %}
-
             </div>
+        </div>
+        
+        <!-- Observaciones en el Sidebar -->
+        {% if observaciones %}
+        <div class="ui-panel" style="border-top: 4px solid #F59E0B;">
+            <div class="ui-panel-titlebar" style="background:#fff; border-bottom:none; padding-bottom:0;">
+                <span style="font-size:1.05rem;"><i class="pi pi-comments" style="color:#92400E; margin-right:6px;"></i> Observaciones</span>
+            </div>
+            <div class="ui-panel-content" style="max-height: 400px; overflow-y: auto;">
+                {% for obs in observaciones %}
+                <div style="margin-bottom: 1.25rem; border-left: 3px solid {% if obs.tipo_observacion == 'APROBACION' %}#10B981{% elif obs.tipo_observacion == 'DEVOLUCION' %}#EF4444{% else %}#F59E0B{% endif %}; padding-left:12px;">
+                    <div style="font-size: 0.85rem; color:#495057; line-height:1.5;">{{ obs.observacion }}</div>
+                    <div style="margin-top: 6px; font-size: 0.75rem; color: #adb5bd; font-weight:600;">
+                        {{ obs.autor }} &bull; {{ obs.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+</div><!-- fin main-container -->
+
+<!-- MODAL ALERTA DE PRESUPUESTO (PrimeFaces Dialog) -->
+<div class="ui-dialog-mask" id="dialogAlerta">
+    <div class="ui-dialog" style="width: 450px;">
+        <div class="ui-dialog-titlebar">
+            <span style="color:#DC2626;"><i class="pi pi-exclamation-triangle" style="margin-right:6px;"></i> Advertencia</span>
+            <button onclick="document.getElementById('dialogAlerta').classList.remove('show')" style="background:none; border:none; cursor:pointer; color:#6c757d;"><i class="pi pi-times"></i></button>
+        </div>
+        <div class="ui-dialog-content" style="display:flex; gap:1rem; align-items:flex-start;">
+            <i class="pi pi-info-circle" style="font-size:2rem; color:#EF4444; margin-top:2px;"></i>
+            <div>
+                <strong style="display:block; margin-bottom:6px; color:#111827; font-size:1.05rem;">Presupuesto Excedido</strong>
+                <span style="color:#4b5563; line-height:1.4;">El monto total de los temas seleccionados supera el presupuesto aprobado para este plan. 
+                Por favor, verifique la selección antes de enviar.</span>
+            </div>
+        </div>
+        <div class="ui-dialog-footer">
+            <button class="ui-button" onclick="document.getElementById('dialogAlerta').classList.remove('show')">Aceptar</button>
         </div>
     </div>
 </div>
 
-<!-- ═══════════════ MODAL: AGREGAR TEMA (Analista - RN-04) ═══════════════ -->
-<div class="pf-modal-overlay" id="modalNuevaTema" style="display:none;">
-    <div class="pf-modal pf-modal-lg">
-        <div class="pf-modal-header">
-            <h5><i class="pi pi-plus-circle" style="margin-right: 8px;"></i> AGREGAR TEMA DE CAPACITACIÓN</h5>
-            <button class="pf-modal-close" onclick="closeModal('modalNuevaTema')">×</button>
+<!-- MODAL NUEVO / EDITAR TEMA (PrimeFaces Dialog) -->
+{% if plan.is_editable() or plan.estado == 'APROBADO' %}
+<div class="ui-dialog-mask" id="modalTema">
+    <div class="ui-dialog" style="width: 650px;">
+        <div class="ui-dialog-titlebar">
+            <span id="modalTemaTitle"><i class="pi pi-plus-circle" style="color:var(--pf-primary); margin-right:6px;"></i> Tema Adicional</span>
+            <button onclick="document.getElementById('modalTema').classList.remove('show')" style="background:none; border:none; cursor:pointer; color:#6c757d;"><i class="pi pi-times"></i></button>
         </div>
-        <form method="POST" action="{{ url_for('planes.nuevo_tema', plan_id=plan.id) }}">
+        <form id="formTema" onsubmit="guardarTemaAjax(event)">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="pf-modal-body">
-                <div class="pf-infobox">
-                    <i class="pi pi-info-circle"></i>
-                    <div>Como Analista, puede agregar temas adicionales que se incluirán directamente como seleccionados.</div>
+            <input type="hidden" id="temaId" name="tema_id" value="">
+            <div class="ui-dialog-content">
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:4px; color:#495057;">Nombre de la Capacitación *</label>
+                    <input type="text" class="ui-inputtext" id="t_nombre" name="nombre" required placeholder="Ej. Gestión Ágil">
                 </div>
-
-                <div class="pf-field">
-                    <label class="pf-label">Nombre de la Capacitación <span>*</span></label>
-                    <input type="text" class="pf-input" name="nombre" required placeholder="Ej: Gestión de Proyectos Ágiles">
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="pf-field">
-                            <label class="pf-label">Dirección / Área <span>*</span></label>
-                            <select class="pf-select" name="direccion_id" required>
-                                <option value="">-- Seleccionar dirección --</option>
-                                {% for dir in direcciones %}
-                                <option value="{{ dir.id }}">{{ dir.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+                    <div style="flex:2;">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:4px; color:#495057;">Dirección / Área *</label>
+                        <select name="direccion_id" id="t_direccion" class="ui-inputtext" required>
+                            <option value="">-- Seleccionar --</option>
+                            {% for dir in direcciones %}<option value="{{ dir.id }}">{{ dir.nombre }}</option>{% endfor %}
+                        </select>
                     </div>
-                    <div class="col-md-6">
-                        <div class="pf-field">
-                            <label class="pf-label">Modalidad <span>*</span></label>
-                            <select class="pf-select" name="modalidad" required>
-                                <option value="PRESENCIAL">Presencial</option>
-                                <option value="VIRTUAL">Virtual</option>
-                                <option value="MIXTO">Mixto</option>
-                            </select>
-                        </div>
+                    <div style="flex:1;">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:4px; color:#495057;">Modalidad *</label>
+                        <select name="modalidad" id="t_modalidad" class="ui-inputtext" required>
+                            <option value="PRESENCIAL">Presencial</option><option value="VIRTUAL">Virtual</option><option value="MIXTO">Mixto</option>
+                        </select>
                     </div>
                 </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="pf-field">
-                            <label class="pf-label">Etapa Funcional <span>*</span></label>
-                            <select class="pf-select" name="etapa_funcional" required>
-                                <option value="">-- Seleccionar --</option>
-                                <option>etapa 1</option>
-                                <option>etapa 2</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="pf-field">
-                            <label class="pf-label">Subetapa Funcional <span>*</span></label>
-                            <select class="pf-select" name="subetapa_funcional" required>
-                                <option value="">-- Seleccionar --</option>
-                                <option>subetapa 1</option>
-                                <option>subetapa 2</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="pf-field">
-                            <label class="pf-label">N° Participantes <span>*</span></label>
-                            <input type="number" class="pf-input" name="num_participantes" min="1" required>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="pf-field">
-                            <label class="pf-label">Tiempo (Horas) <span>*</span></label>
-                            <input type="number" class="pf-input" name="horas" step="0.5" min="0.5" required>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="pf-field">
-                            <label class="pf-label">Ppto. Referencial ($) <span>*</span></label>
-                            <input type="number" class="pf-input" name="presupuesto_referencial" step="0.01" min="0" required>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="pf-field">
-                            <label class="pf-label">Mes de Ejecución <span>*</span></label>
-                            <select class="pf-select" name="mes_ejecucion" required>
-                                <option value="1">Enero</option><option value="2">Febrero</option>
-                                <option value="3">Marzo</option><option value="4">Abril</option>
-                                <option value="5">Mayo</option><option value="6">Junio</option>
-                                <option value="7">Julio</option><option value="8">Agosto</option>
-                                <option value="9">Septiembre</option><option value="10">Octubre</option>
-                                <option value="11">Noviembre</option><option value="12">Diciembre</option>
-                            </select>
-                        </div>
+                <div style="display:flex; gap:1rem;">
+                    <div style="flex:1;"><label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px; color:#495057;">Partic. *</label><input type="number" id="t_partic" class="ui-inputtext" name="num_participantes" required min="1"></div>
+                    <div style="flex:1;"><label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px; color:#495057;">Horas *</label><input type="number" id="t_horas" class="ui-inputtext" name="horas" step="0.5" required min="1"></div>
+                    <div style="flex:1;"><label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px; color:#495057;">Ppto. Ref. *</label><input type="number" id="t_ppto" class="ui-inputtext" name="presupuesto_referencial" step="0.01" required min="0"></div>
+                    <div style="flex:1;"><label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px; color:#495057;">Mes *</label>
+                        <select name="mes_ejecucion" id="t_mes" class="ui-inputtext" required>
+                            <option value="1">Ene</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Abr</option>
+                            <option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Ago</option>
+                            <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dic</option>
+                        </select>
                     </div>
                 </div>
             </div>
-            <div class="pf-modal-footer">
-                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalNuevaTema')">
-                    <i class="pi pi-times"></i> Cancelar
-                </button>
-                <button type="submit" class="pf-btn pf-btn-success">
-                    <i class="pi pi-save"></i> Guardar Tema
-                </button>
+            <div class="ui-dialog-footer">
+                <button type="button" class="ui-button ui-button-secondary" onclick="document.getElementById('modalTema').classList.remove('show')">Cancelar</button>
+                <button type="submit" class="ui-button" id="btnGuardarTema"><i class="pi pi-save"></i> Guardar</button>
             </div>
         </form>
     </div>
 </div>
+{% endif %}
 
+<!-- MODAL TEMA EXTRA PLANIFICACION (APROBADO) -->
+{% if plan.estado == 'APROBADO' %}
+<div class="ui-dialog-mask" id="modalTemaExtra">
+    <div class="ui-dialog" style="width: 650px;">
+        <div class="ui-dialog-titlebar">
+            <span><i class="pi pi-plus-circle" style="color:var(--pf-primary); margin-right:6px;"></i> Añadir Tema Gratuito (No Planificado)</span>
+            <button onclick="document.getElementById('modalTemaExtra').classList.remove('show')" style="background:none; border:none; cursor:pointer; color:#6c757d;"><i class="pi pi-times"></i></button>
+        </div>
+        <form id="formTemaExtra" onsubmit="guardarTemaExtraAjax(event)">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="ui-dialog-content">
+                <div style="background:#EFF6FF; border-left:4px solid #3B82F6; padding:1rem; color:#1E40AF; font-size:0.9rem; border-radius:4px; margin-bottom:1rem;">
+                    Este tema se agregará como <strong>EXTRA PLAN</strong>. Su presupuesto referencial será $0 y no alterará el plan original aprobado.
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:4px; color:#495057;">Nombre de la Capacitación *</label>
+                    <input type="text" class="ui-inputtext" name="nombre" required placeholder="Ej. Taller Práctico Ley Energética">
+                </div>
+                <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+                    <div style="flex:2;">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:4px; color:#495057;">Dirección / Área *</label>
+                        <select name="direccion_id" class="ui-inputtext" required>
+                            <option value="">-- Seleccionar --</option>
+                            {% for dir in direcciones %}<option value="{{ dir.id }}">{{ dir.nombre }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:4px; color:#495057;">Modalidad *</label>
+                        <select name="modalidad" class="ui-inputtext" required>
+                            <option value="PRESENCIAL">Presencial</option><option value="VIRTUAL">Virtual</option><option value="MIXTO">Mixto</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; gap:1rem;">
+                    <div style="flex:1;"><label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px; color:#495057;">Participantes *</label><input type="number" class="ui-inputtext" name="num_participantes" required min="1"></div>
+                    <div style="flex:1;"><label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px; color:#495057;">Horas *</label><input type="number" class="ui-inputtext" name="horas" step="0.5" required min="1"></div>
+                    <div style="flex:1;"><label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px; color:#495057;">Mes *</label>
+                        <select name="mes_ejecucion" class="ui-inputtext" required>
+                            <option value="1">Ene</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Abr</option>
+                            <option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Ago</option>
+                            <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dic</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="ui-dialog-footer">
+                <button type="button" class="ui-button ui-button-secondary" onclick="document.getElementById('modalTemaExtra').classList.remove('show')">Cancelar</button>
+                <button type="submit" class="ui-button" id="btnGuardarTemaExtra"><i class="pi pi-save"></i> Guardar Tema Extra</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrfToken = "{{ csrf_token() }}";
+const planId = {{ plan.id }};
+const presupuestoAprobado = {{ plan.monto_aprobado or plan.monto_referencial }};
+
+function toggleAccordion(header) {
+    const content = header.nextElementSibling;
+    header.classList.toggle('active');
+    content.classList.toggle('active');
+}
+
+// TOGGLE TEMA (AJAX)
+function toggleTemaAjax(planId, temaId, checkbox) {
+    const row = document.getElementById('row-' + temaId);
+    if(checkbox.checked) row.classList.add('ui-state-highlight');
+    else row.classList.remove('ui-state-highlight');
+
+    const formData = new FormData();
+    formData.append('csrf_token', csrfToken);
+
+    fetch(`/planes/${planId}/tema/${temaId}/toggle_ajax`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success) {
+            updateSidebar(data.total_seleccionado, data.temas_seleccionados_count);
+        } else {
+            checkbox.checked = !checkbox.checked;
+            if(checkbox.checked) row.classList.add('ui-state-highlight'); else row.classList.remove('ui-state-highlight');
+            alert("Error: " + data.message);
+        }
+    });
+}
+
+// ACTUALIZAR SIDEBAR
+function updateSidebar(totalUsado, cantTemas) {
+    document.getElementById('lblTotal').textContent = '$' + Math.round(totalUsado).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    document.getElementById('lblCount').textContent = cantTemas;
+    
+    let pct = presupuestoAprobado > 0 ? (totalUsado / presupuestoAprobado) * 100 : 0;
+    document.getElementById('lblPct').textContent = pct.toFixed(1) + '% Consumido';
+    
+    const bar = document.getElementById('progressBar');
+    bar.style.width = Math.min(pct, 100) + '%';
+    
+    if(pct > 100) {
+        bar.classList.add('danger');
+        document.getElementById('dialogAlerta').classList.add('show');
+    } else {
+        bar.classList.remove('danger');
+    }
+
+    const btnEnviar = document.getElementById('btnEnviar');
+    if(btnEnviar) btnEnviar.disabled = (cantTemas === 0);
+}
+
+// MODALES: NUEVO Y EDITAR TEMA
+function openNewModal() {
+    document.getElementById('temaId').value = '';
+    document.getElementById('formTema').reset();
+    document.getElementById('t_direccion').disabled = false; // Se puede elegir
+    document.getElementById('modalTemaTitle').innerHTML = '<i class="pi pi-plus-circle" style="color:var(--pf-primary); margin-right:6px;"></i> Nuevo Tema Adicional';
+    document.getElementById('modalTema').classList.add('show');
+}
+
+function openEditModal(id, nombre, dir_id, modalidad, partic, horas, ppto, mes) {
+    document.getElementById('temaId').value = id;
+    document.getElementById('t_nombre').value = nombre;
+    document.getElementById('t_direccion').value = dir_id;
+    document.getElementById('t_direccion').disabled = true; // No se cambia de direccion al editar
+    document.getElementById('t_modalidad').value = modalidad;
+    document.getElementById('t_partic').value = partic;
+    document.getElementById('t_horas').value = horas;
+    document.getElementById('t_ppto').value = ppto;
+    document.getElementById('t_mes').value = mes;
+    
+    document.getElementById('modalTemaTitle').innerHTML = '<i class="pi pi-pencil" style="color:var(--pf-primary); margin-right:6px;"></i> Editar Tema';
+    document.getElementById('modalTema').classList.add('show');
+}
+
+// GUARDAR TEMA (AJAX) - Evita recargar toda la página
+function guardarTemaAjax(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnGuardarTema');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="pi pi-spin pi-spinner"></i> Guardando...';
+
+    const form = e.target;
+    const formData = new FormData(form);
+    const temaId = document.getElementById('temaId').value;
+    
+    // Si la direccion esta disabled, no se envia en formData, hay que agregarla
+    if(document.getElementById('t_direccion').disabled) {
+        formData.append('direccion_id', document.getElementById('t_direccion').value);
+    }
+
+    const url = temaId ? `/planes/${planId}/tema/${temaId}/editar_ajax` : `/planes/${planId}/tema/nuevo_ajax`;
+
+    fetch(url, { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success) {
+            document.getElementById('modalTema').classList.remove('show');
+            // Recargar solo el DOM del main-container para ver la nueva tabla sin parpadeo (HTMX style)
+            recargarTablasHTML();
+        } else {
+            alert(data.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="pi pi-save"></i> Guardar';
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Error de red al guardar.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="pi pi-save"></i> Guardar';
+    });
+}
+
+// RECARGA PARCIAL DEL DOM (Evita el parpadeo blanco de reload)
+function recargarTablasHTML() {
+    fetch(window.location.href)
+    .then(r => r.text())
+    .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        
+        // Guardar estado de acordeones
+        const currentStates = [];
+        document.querySelectorAll('.ui-accordion-header').forEach(h => currentStates.push(h.classList.contains('active')));
+        
+        // Reemplazar main container
+        document.getElementById('main-container').innerHTML = doc.getElementById('main-container').innerHTML;
+        
+        // Restaurar estado de acordeones
+        document.querySelectorAll('.ui-accordion-header').forEach((h, i) => {
+            if(currentStates[i]) {
+                h.classList.add('active');
+                if(h.nextElementSibling) h.nextElementSibling.classList.add('active');
+            }
+        });
+        
+        // Restaurar estado boton si estaba modal abierto (no deberia)
+        const btn = document.getElementById('btnGuardarTema');
+        if(btn) { btn.disabled = false; btn.innerHTML = '<i class="pi pi-save"></i> Guardar'; }
+    });
+}
+
+
+function openModalExtraPlan() {
+    document.getElementById('formTemaExtra').reset();
+    document.getElementById('modalTemaExtra').classList.add('show');
+}
+
+function guardarTemaExtraAjax(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnGuardarTemaExtra');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="pi pi-spin pi-spinner"></i> Guardando...';
+
+    const formData = new FormData(document.getElementById('formTemaExtra'));
+    
+    fetch(`/planes/${planId}/tema/extra_ajax`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success) {
+            location.reload(); // Recargar para ver la nueva tabla de temas extra
+        } else {
+            alert("Error: " + data.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="pi pi-save"></i> Guardar Tema Extra';
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Error de red al guardar.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="pi pi-save"></i> Guardar Tema Extra';
+    });
+}
+</script>
 {% endblock %}

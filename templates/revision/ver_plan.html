@@ -1,228 +1,254 @@
 {% extends "base.html" %}
 {% block title %}Plan {{ plan.anio }} — Vista de Revisión - SIGEERN{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Modern PrimeFaces Theme (Saga/Aura style) */
+:root {
+    --pf-primary: #3B82F6;
+    --pf-primary-hover: #2563EB;
+    --pf-border: #dee2e6;
+    --pf-header-bg: #f8f9fa;
+    --pf-header-text: #495057;
+    --pf-content-bg: #ffffff;
+    --pf-text: #495057;
+    --pf-radius: 6px;
+    --pf-shadow: 0 2px 4px -1px rgba(0,0,0,0.05);
+}
+
+body { color: var(--pf-text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+/* Layout */
+.pf-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
+.pf-layout-main { flex: 1; min-width: 0; }
+.pf-layout-sidebar { width: 340px; flex-shrink: 0; position: sticky; top: 1.5rem; }
+@media (max-width: 992px) { .pf-layout { flex-direction: column-reverse; } .pf-layout-sidebar { width: 100%; position: static; } }
+
+/* Panel general */
+.ui-panel { border: 1px solid var(--pf-border); background: var(--pf-content-bg); margin-bottom: 1.5rem; border-radius: var(--pf-radius); box-shadow: var(--pf-shadow); }
+.ui-panel-titlebar { background: var(--pf-header-bg); color: var(--pf-header-text); font-weight: 600; padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--pf-border); border-top-left-radius: var(--pf-radius); border-top-right-radius: var(--pf-radius); font-size: 0.95rem; }
+.ui-panel-content { padding: 1.25rem; }
+
+/* Acordeón */
+.ui-accordion { margin-bottom: 1.5rem; border-radius: var(--pf-radius); box-shadow: var(--pf-shadow); background: var(--pf-content-bg); }
+.ui-accordion-header { background: var(--pf-header-bg); border: 1px solid var(--pf-border); padding: 0.75rem 1.25rem; font-weight: 600; color: var(--pf-header-text); cursor: pointer; display: flex; align-items: center; gap: 0.75rem; font-size: 0.95rem; margin-top: -1px; transition: background 0.2s; user-select: none; }
+.ui-accordion-header:first-child { border-top-left-radius: var(--pf-radius); border-top-right-radius: var(--pf-radius); margin-top: 0; }
+.ui-accordion-header:hover { background: #e9ecef; }
+.ui-accordion-content { border: 1px solid var(--pf-border); border-top: none; padding: 0; display: none; background: var(--pf-content-bg); }
+.ui-accordion-content.active { display: block; }
+
+/* DataTable */
+.ui-datatable { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.ui-datatable th { background: var(--pf-header-bg); border-bottom: 1px solid var(--pf-border); padding: 0.75rem 1rem; color: var(--pf-header-text); font-weight: 600; text-align: left; white-space: nowrap; }
+.ui-datatable td { border-bottom: 1px solid var(--pf-border); padding: 0.6rem 1rem; color: var(--pf-text); vertical-align: middle; }
+.ui-datatable tr:last-child td { border-bottom: none; }
+.ui-datatable tr:hover { background: #f8f9fa; }
+
+/* Botones */
+.ui-button { background: var(--pf-primary); color: white; border: 1px solid var(--pf-primary); padding: 0.6rem 1rem; font-size: 0.95rem; border-radius: var(--pf-radius); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; transition: all 0.2s; text-decoration: none; width: 100%; }
+.ui-button:hover { background: var(--pf-primary-hover); border-color: var(--pf-primary-hover); }
+.ui-button-success { background: #10B981; border-color: #10B981; } .ui-button-success:hover { background: #059669; border-color: #059669; }
+.ui-button-danger { background: #EF4444; border-color: #EF4444; } .ui-button-danger:hover { background: #DC2626; border-color: #DC2626; }
+.ui-button-outlined-danger { background: transparent; color: #EF4444; border: 1px solid #EF4444; } .ui-button-outlined-danger:hover { background: #fef2f2; }
+.ui-button-secondary { background: #6b7280; border-color: #6b7280; } .ui-button-secondary:hover { background: #4b5563; border-color: #4b5563; }
+
+/* Dialog Modal */
+.ui-dialog-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); z-index: 1000; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s; }
+.ui-dialog-mask.show { display: flex; opacity: 1; }
+.ui-dialog { background: var(--pf-content-bg); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); max-width: 90%; width: 500px; transform: scale(0.95); transition: transform 0.2s; overflow: hidden; }
+.ui-dialog-mask.show .ui-dialog { transform: scale(1); }
+.ui-dialog-titlebar { background: #fff; border-bottom: 1px solid var(--pf-border); padding: 1rem 1.5rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; color: #0f172a; font-size: 1.1rem; }
+.ui-dialog-content { padding: 1.5rem; font-size: 0.95rem; }
+.ui-dialog-footer { background: var(--pf-header-bg); padding: 1rem 1.5rem; text-align: right; border-top: 1px solid var(--pf-border); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+.ui-inputtext { border: 1px solid #ced4da; padding: 0.5rem 0.75rem; font-size: 0.9rem; border-radius: 4px; width: 100%; outline: none; transition: border-color 0.2s; color: #495057; font-family: inherit; }
+.ui-inputtext:focus { border-color: var(--pf-primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+
+.ui-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+.ui-badge-info { background: #DBEAFE; color: #1E40AF; }
+.ui-badge-success { background: #D1FAE5; color: #065F46; }
+.ui-badge-warning { background: #FEF3C7; color: #92400E; }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Breadcrumb -->
-<div class="breadcrumb-bar">
+<div class="breadcrumb-bar" style="margin-bottom: 1.5rem;">
     Inicio /
     {% if usuario.es_jefe_personal() %}
-        <a href="{{ url_for('revision.lista_jefe') }}" style="color: var(--primary);">Revisión de Planes</a>
+        <a href="{{ url_for('revision.lista_jefe') }}">Revisión de Planes</a>
     {% elif usuario.es_director_th() %}
-        <a href="{{ url_for('revision.lista_director') }}" style="color: var(--primary);">Revisión del Plan</a>
+        <a href="{{ url_for('revision.lista_director') }}">Revisión del Plan</a>
     {% elif usuario.es_presidente() %}
-        <a href="{{ url_for('revision.lista_presidente') }}" style="color: var(--primary);">Aprobación Final</a>
+        <a href="{{ url_for('revision.lista_presidente') }}">Aprobación Final</a>
     {% elif usuario.es_analista() %}
-        <a href="{{ url_for('planes.lista') }}" style="color: var(--primary);">Planes</a>
+        <a href="{{ url_for('planes.lista') }}">Planes</a>
     {% endif %}
     / <span>Plan {{ plan.anio }}</span>
 </div>
 
-<!-- ALERTA PRESUPUESTO -->
-{% if supera_presupuesto %}
-<div class="pf-dangerbox">
-    <i class="pi pi-exclamation-triangle"></i>
-    <div>
-        <strong>Alerta:</strong> El total seleccionado (${{ "%.2f"|format(total_seleccionado) }})
-        supera el monto referencial (${{ "%.2f"|format(plan.monto_referencial) }}).
-    </div>
-</div>
-{% endif %}
-
-<!-- PANEL SUPERIOR: Header del plan -->
-<div class="pf-panel" style="margin-bottom: 1rem;">
-    <div class="pf-panel-header" style="text-align: left; display: flex; align-items: center; justify-content: space-between;">
+<!-- PANEL SUPERIOR: Summary Minimalista -->
+<div class="ui-panel">
+    <div class="ui-panel-titlebar" style="display: flex; align-items: center; justify-content: space-between;">
         <span>
-            <i class="pi pi-calendar" style="margin-right: 6px;"></i>
-            PLAN ANUAL DE CAPACITACIÓN {{ plan.anio }}
+            <i class="pi pi-calendar" style="margin-right: 6px; color:var(--pf-primary);"></i>
+            Plan Anual de Capacitación {{ plan.anio }}
         </span>
         <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="estado-badge estado-{{ plan.estado }}">{{ plan.estado.replace('_', ' ') }}</span>
+            <span class="ui-badge {% if plan.estado == 'EN_REVISION' %}ui-badge-warning{% else %}ui-badge-info{% endif %}">{{ plan.estado.replace('_', ' ') }}</span>
             {% if plan.is_blocked() %}
-            <span style="font-size: 0.78rem; color: #888;">
-                <i class="pi pi-lock"></i> Solo lectura
+            <span style="font-size: 0.8rem; color: #6c757d; font-weight:600;">
+                <i class="pi pi-lock"></i> Bloqueado (Solo lectura)
             </span>
             {% endif %}
         </div>
     </div>
-    <div class="pf-panel-content">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <div class="stat-card" style="padding: 0.8rem;">
-                    <div class="stat-value" style="font-size: 1.4rem;">${{ "%.0f"|format(plan.monto_referencial) }}</div>
-                    <div class="stat-label">Monto Referencial</div>
-                </div>
+    <div class="ui-panel-content" style="display:flex; justify-content:center; align-items:center; gap:4rem; padding: 2rem 1rem;">
+        <div style="text-align:center;">
+            <div style="font-size: 2rem; font-weight:700; color: {{ '#EF4444' if supera_presupuesto else '#10B981' }};">
+                ${{ "%.0f"|format(total_seleccionado) }}
             </div>
-            <div class="col-md-3">
-                <div class="stat-card" style="padding: 0.8rem;">
-                    <div class="stat-value" style="font-size: 1.4rem; color: {{ '#dc3545' if supera_presupuesto else '#166534' }};">
-                        ${{ "%.0f"|format(total_seleccionado) }}
-                    </div>
-                    <div class="stat-label">Total Seleccionado</div>
-                </div>
+            <div style="font-size: 0.9rem; color:#6c757d; font-weight:600; text-transform:uppercase; margin-top:4px;">
+                Presupuesto Aprobado
             </div>
-            <div class="col-md-3">
-                <div class="stat-card" style="padding: 0.8rem;">
-                    <div class="stat-value" style="font-size: 1.4rem;">{{ plan.get_temas_count() }}</div>
-                    <div class="stat-label">Temas Registrados</div>
-                </div>
+        </div>
+        <div style="width: 1px; height: 60px; background: var(--pf-border);"></div>
+        <div style="text-align:center;">
+            <div style="font-size: 2rem; font-weight:700; color:#3B82F6;">
+                {{ plan.get_temas_seleccionados_count() }}
             </div>
-            <div class="col-md-3">
-                <div class="stat-card" style="padding: 0.8rem;">
-                    <div class="stat-value" style="font-size: 1.4rem; color: #166534;">{{ plan.get_temas_seleccionados_count() }}</div>
-                    <div class="stat-label">Temas Seleccionados</div>
-                </div>
+            <div style="font-size: 0.9rem; color:#6c757d; font-weight:600; text-transform:uppercase; margin-top:4px;">
+                Temas Seleccionados
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-3">
-    <!-- ─── COLUMNA IZQUIERDA: Acciones + Observaciones ─── -->
-    <div class="col-md-3">
-
-        <!-- ACCIONES POR ROL -->
-        {% if usuario.es_jefe_personal() and plan.estado == 'EN_REVISION' %}
-        <div class="pf-panel">
-            <div class="pf-panel-header">Acciones</div>
-            <div class="pf-panel-content" style="display: flex; flex-direction: column; gap: 8px;">
-                <!-- Aprobar -->
-                <button class="pf-btn pf-btn-success" onclick="openModal('modalAprobarJefe')" style="width: 100%; justify-content: center;">
-                    <i class="pi pi-check"></i> Aprobar Plan
-                </button>
-                <!-- Devolver -->
-                <button class="pf-btn pf-btn-outlined-danger" onclick="openModal('modalDevolverJefe')" style="width: 100%; justify-content: center;">
-                    <i class="pi pi-undo"></i> Devolver al Analista
-                </button>
+<div class="pf-layout">
+    
+    <!-- COLUMNA PRINCIPAL: Temas -->
+    <div class="pf-layout-main">
+        <div class="ui-panel">
+            <div class="ui-panel-titlebar" style="background:#fff; border-bottom:none;">
+                <span style="font-size:1.05rem;"><i class="pi pi-list" style="color:var(--pf-primary); margin-right:6px;"></i> Detalle de Temas Seleccionados</span>
             </div>
-        </div>
-        {% elif usuario.es_director_th() and plan.estado == 'EN_APROBACION' %}
-        <div class="pf-panel">
-            <div class="pf-panel-header">Acciones</div>
-            <div class="pf-panel-content">
-                <button class="pf-btn pf-btn-primary" onclick="openModal('modalEnviarPresidente')" style="width: 100%; justify-content: center;">
-                    <i class="pi pi-send"></i> Enviar al Presidente
-                </button>
-            </div>
-        </div>
-        {% elif usuario.es_presidente() and plan.estado == 'EN_APROBACION' %}
-        <div class="pf-panel">
-            <div class="pf-panel-header">Acciones</div>
-            <div class="pf-panel-content">
-                <button class="pf-btn pf-btn-success" onclick="openModal('modalAprobarFinal')" style="width: 100%; justify-content: center;">
-                    <i class="pi pi-verified"></i> Aprobar Definitivamente
-                </button>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Observaciones -->
-        <div class="pf-panel">
-            <div class="pf-panel-header">Observaciones</div>
-            <div class="pf-panel-content" style="max-height: 380px; overflow-y: auto;">
-                {% if observaciones %}
-                    {% for obs in observaciones %}
-                    <div class="obs-card obs-{{ obs.tipo_observacion }}" style="margin-bottom: 0.7rem;">
-                        <div style="font-size: 0.82rem;">{{ obs.observacion }}</div>
-                        <div class="text-muted-sm" style="margin-top: 3px;">
-                            <strong>{{ obs.autor }}</strong> —
-                            {{ obs.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
-                            <span style="font-size: 0.68rem; margin-left: 4px; padding: 1px 5px; border-radius: 2px;
-                                {% if obs.tipo_observacion == 'APROBACION' %}background:#d1e7dd; color:#0a3622;
-                                {% elif obs.tipo_observacion == 'DEVOLUCION' %}background:#f8d7da; color:#58151c;
-                                {% else %}background:#fff3cd; color:#664d03;{% endif %}">
-                                {{ obs.tipo_observacion }}
-                            </span>
-                        </div>
+            <div class="ui-panel-content" style="padding-top:0;">
+                
+                <div class="ui-accordion">
+                {% if temas_por_direccion %}
+                    {% for dir_nombre, data in temas_por_direccion.items() %}
+                    <div class="ui-accordion-header active" onclick="this.nextElementSibling.classList.toggle('active')">
+                        <i class="pi pi-building" style="color:#6c757d;"></i> {{ dir_nombre }}
+                        <span class="ui-badge ui-badge-info" style="margin-left:auto;">{{ data.temas|length }} temas</span>
+                    </div>
+                    <div class="ui-accordion-content active">
+                        <table class="ui-datatable">
+                            <thead>
+                                <tr>
+                                    <th style="width:30px; text-align:center;">#</th>
+                                    <th>Tema de Capacitación</th>
+                                    <th>Modalidad</th>
+                                    <th style="text-align:center;">Horas</th>
+                                    <th style="text-align:center;">Partic.</th>
+                                    <th style="text-align:center;">Mes</th>
+                                    <th style="text-align:right;">Presupuesto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tema in data.temas %}
+                                {% set ts = tema.tema_seleccionado %}
+                                <tr>
+                                    <td style="text-align:center; color:#6c757d;">{{ loop.index }}</td>
+                                    <td><strong style="color:#343a40;">{{ tema.nombre }}</strong></td>
+                                    <td>
+                                        <span class="ui-badge {% if tema.modalidad == 'VIRTUAL' %}ui-badge-info{% elif tema.modalidad == 'PRESENCIAL' %}ui-badge-success{% else %}ui-badge-warning{% endif %}">
+                                            {{ tema.modalidad }}
+                                        </span>
+                                    </td>
+                                    <td style="text-align:center;">{{ tema.horas }}</td>
+                                    <td style="text-align:center;">{{ tema.num_participantes }}</td>
+                                    <td style="text-align:center;">{{ tema.get_nombre_mes()[:3] }}</td>
+                                    <td style="text-align:right; font-weight:600; color:#495057;">
+                                        ${{ "%.0f"|format(ts.presupuesto_aprobado if ts.presupuesto_aprobado else tema.presupuesto_referencial) }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="text-muted-sm">Sin observaciones.</div>
+                    <div style="text-align: center; padding: 3rem; color: #adb5bd;">
+                        <i class="pi pi-inbox" style="font-size: 3rem; margin-bottom:1rem; display:block;"></i>
+                        <p style="font-size:1.1rem; color:#6c757d; font-weight:600;">No hay temas seleccionados en este plan.</p>
+                    </div>
                 {% endif %}
+                </div>
+
             </div>
         </div>
     </div>
 
-    <!-- ─── COLUMNA DERECHA: Temas ─── -->
-    <div class="col-md-9">
-        <div class="pf-panel">
-            <div class="pf-panel-header" style="text-align: left;">
-                <i class="pi pi-list" style="margin-right: 6px;"></i>
-                TEMAS SELECCIONADOS POR DIRECCIÓN
+    <!-- COLUMNA DERECHA: Sidebar Acciones y Observaciones -->
+    <div class="pf-layout-sidebar">
+
+        <!-- ACCIONES POR ROL -->
+        <div class="ui-panel" style="border-top: 4px solid #6c757d; margin-bottom: 1.5rem;">
+            <div class="ui-panel-content" style="padding: 1rem;">
+                <a href="{{ url_for('planes.imprimir_plan', plan_id=plan.id) }}" target="_blank" class="ui-button ui-button-secondary" style="width:100%; justify-content:center;">
+                    <i class="pi pi-file-pdf"></i> Ver PDF Preliminar
+                </a>
             </div>
-            <div class="pf-panel-content">
-                {% if temas_por_direccion %}
-                    {% for dir_nombre, data in temas_por_direccion.items() %}
-                    <div style="margin-bottom: 1.5rem;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                            <i class="pi pi-building" style="color: var(--primary);"></i>
-                            <strong style="color: var(--primary);">{{ dir_nombre }}</strong>
-                            <span style="font-size: 0.75rem; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 10px;">
-                                {{ data.temas|length }} temas
-                            </span>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="pf-datatable" style="font-size: 0.82rem;">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Nombre del Tema</th>
-                                        <th>Etapa Funcional</th>
-                                        <th>Modalidad</th>
-                                        <th>Horas</th>
-                                        <th>Participantes</th>
-                                        <th>Mes</th>
-                                        <th>Ppto. Ref.</th>
-                                        <th>Ppto. Apr.</th>
-                                        <th style="text-align: center;">Selec.</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for tema in data.temas %}
-                                    {% set ts = tema.tema_seleccionado %}
-                                    <tr style="{% if ts and ts.seleccionado %}background: #f0fdf4;{% elif ts and not ts.seleccionado %}background: #fff7f7; opacity: 0.7;{% endif %}">
-                                        <td class="text-muted-sm">{{ loop.index }}</td>
-                                        <td><strong>{{ tema.nombre }}</strong></td>
-                                        <td>{{ tema.etapa_funcional[:22] }}{% if tema.etapa_funcional|length > 22 %}...{% endif %}</td>
-                                        <td>
-                                            <span style="font-size: 0.72rem; padding: 2px 5px; border-radius: 2px;
-                                                {% if tema.modalidad == 'VIRTUAL' %}background: #dbeafe; color: #1d4ed8;
-                                                {% elif tema.modalidad == 'PRESENCIAL' %}background: #dcfce7; color: #166534;
-                                                {% else %}background: #fef3c7; color: #92400e;{% endif %}">
-                                                {{ tema.modalidad }}
-                                            </span>
-                                        </td>
-                                        <td>{{ tema.horas }}</td>
-                                        <td>{{ tema.num_participantes }}</td>
-                                        <td>{{ tema.get_nombre_mes()[:3] }}</td>
-                                        <td>${{ "%.0f"|format(tema.presupuesto_referencial) }}</td>
-                                        <td>
-                                            {% if ts and ts.presupuesto_aprobado %}
-                                                <strong>${{ "%.0f"|format(ts.presupuesto_aprobado) }}</strong>
-                                            {% else %}
-                                                <span class="text-muted-sm">—</span>
-                                            {% endif %}
-                                        </td>
-                                        <td style="text-align: center;">
-                                            {% if ts and ts.seleccionado %}
-                                            <i class="pi pi-check-circle" style="color: #166534; font-size: 1rem;"></i>
-                                            {% elif ts %}
-                                            <i class="pi pi-times-circle" style="color: #dc3545; font-size: 1rem;"></i>
-                                            {% else %}
-                                            <span class="text-muted-sm">—</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+        </div>
+
+        {% if usuario.es_jefe_personal() and plan.estado == 'EN_REVISION' %}
+        <div class="ui-panel" style="border-top: 4px solid #10B981;">
+            <div class="ui-panel-titlebar" style="background:#fff; border-bottom:none; padding-bottom:0;"><span style="font-size:1.05rem;"><i class="pi pi-cog" style="color:#10B981; margin-right:6px;"></i> Acciones de Revisión</span></div>
+            <div class="ui-panel-content" style="display: flex; flex-direction: column; gap: 12px;">
+                <button class="ui-button ui-button-success" style="padding:0.8rem;" onclick="document.getElementById('modalAprobarJefe').classList.add('show')">
+                    <i class="pi pi-check-circle" style="font-size:1.1rem;"></i> Aprobar Plan
+                </button>
+                <div style="text-align:center; font-size:0.8rem; color:#adb5bd; font-weight:600;">O</div>
+                <button class="ui-button ui-button-outlined-danger" style="padding:0.8rem;" onclick="document.getElementById('modalDevolverJefe').classList.add('show')">
+                    <i class="pi pi-undo" style="font-size:1.1rem;"></i> Devolver con Observaciones
+                </button>
+            </div>
+        </div>
+        {% elif usuario.es_director_th() and plan.estado == 'EN_APROBACION' %}
+        <div class="ui-panel" style="border-top: 4px solid var(--pf-primary);">
+            <div class="ui-panel-titlebar" style="background:#fff; border-bottom:none; padding-bottom:0;"><span style="font-size:1.05rem;"><i class="pi pi-cog" style="color:var(--pf-primary); margin-right:6px;"></i> Acciones de Dirección</span></div>
+            <div class="ui-panel-content">
+                <button class="ui-button" style="padding:0.8rem;" onclick="document.getElementById('modalEnviarPresidente').classList.add('show')">
+                    <i class="pi pi-send" style="font-size:1.1rem;"></i> Aprobar y Enviar a Presidente
+                </button>
+            </div>
+        </div>
+        {% elif usuario.es_presidente() and plan.estado == 'EN_APROBACION' %}
+        <div class="ui-panel" style="border-top: 4px solid #10B981;">
+            <div class="ui-panel-titlebar" style="background:#fff; border-bottom:none; padding-bottom:0;"><span style="font-size:1.05rem;"><i class="pi pi-cog" style="color:#10B981; margin-right:6px;"></i> Aprobación Final</span></div>
+            <div class="ui-panel-content">
+                <button class="ui-button ui-button-success" style="padding:0.8rem;" onclick="document.getElementById('modalAprobarFinal').classList.add('show')">
+                    <i class="pi pi-verified" style="font-size:1.1rem;"></i> Aprobar Definitivamente
+                </button>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Observaciones Históricas -->
+        <div class="ui-panel">
+            <div class="ui-panel-titlebar" style="background:#fff; border-bottom:none; padding-bottom:0;"><span style="font-size:1.05rem;"><i class="pi pi-comments" style="color:#6c757d; margin-right:6px;"></i> Historial Observaciones</span></div>
+            <div class="ui-panel-content" style="max-height: 400px; overflow-y: auto;">
+                {% if observaciones %}
+                    {% for obs in observaciones %}
+                    <div style="margin-bottom: 1.25rem; border-left: 3px solid {% if obs.tipo_observacion == 'APROBACION' %}#10B981{% elif obs.tipo_observacion == 'DEVOLUCION' %}#EF4444{% else %}#F59E0B{% endif %}; padding-left:12px;">
+                        <div style="font-size: 0.85rem; color:#495057; line-height:1.5;">{{ obs.observacion }}</div>
+                        <div style="margin-top: 6px; font-size: 0.75rem; color: #adb5bd; font-weight:600;">
+                            {{ obs.autor }} &bull; {{ obs.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
                         </div>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div style="text-align: center; padding: 2rem; color: #888;">
-                        <i class="pi pi-inbox" style="font-size: 2rem;"></i>
-                        <p>Sin temas registrados.</p>
-                    </div>
+                    <div style="font-size:0.9rem; color:#adb5bd; text-align:center; padding: 1rem 0;">No hay observaciones en el historial.</div>
                 {% endif %}
             </div>
         </div>
@@ -231,63 +257,66 @@
 
 <!-- ═══ MODALES SEGÚN ROL ═══ -->
 
-<!-- Aprobar (Jefe) -->
+<!-- Aprobar y Firmar (Jefe) -->
 {% if usuario.es_jefe_personal() %}
-<div class="pf-modal-overlay" id="modalAprobarJefe" style="display:none;">
-    <div class="pf-modal">
-        <div class="pf-modal-header" style="background: #166534;">
-            <h5><i class="pi pi-check-circle" style="margin-right: 8px;"></i> APROBAR Y ENVIAR AL DIRECTOR DE TH</h5>
-            <button class="pf-modal-close" onclick="closeModal('modalAprobarJefe')">×</button>
+<div class="ui-dialog-mask" id="modalAprobarJefe">
+    <div class="ui-dialog">
+        <div class="ui-dialog-titlebar">
+            <span><i class="pi pi-check-circle" style="color:#10B981; margin-right: 8px;"></i> Aprobar Plan Anual</span>
+            <button class="ui-button-text" style="border:none; background:none; cursor:pointer;" onclick="document.getElementById('modalAprobarJefe').classList.remove('show')"><i class="pi pi-times" style="font-size:1.2rem; color:#6c757d;"></i></button>
         </div>
-        <form method="POST" action="{{ url_for('planes.accion_jefe', plan_id=plan.id) }}">
+        <form method="POST" action="{{ url_for('planes.accion_jefe', plan_id=plan.id) }}" onsubmit="simularGeneracionPDF(event, 'formAprobarJefe')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="action" value="aprobar">
-            <div class="pf-modal-body">
-                <div class="pf-infobox" style="background: #d1e7dd; border-color: #a3cfbb; color: #0a3622;">
-                    <i class="pi pi-info-circle"></i>
-                    <div>¿Confirma que desea aprobar el <strong>Plan de Capacitación {{ plan.anio }}</strong> y enviarlo al Director de Talento Humano?</div>
+            <div class="ui-dialog-content">
+                
+                <div id="step-confirmar" style="text-align:center; padding: 1rem 0;">
+                    <i class="pi pi-file-pdf" style="font-size: 4rem; color: #DC2626; margin-bottom: 1rem; display:block;"></i>
+                    <p style="font-size:1.05rem; color:#343a40; margin-bottom:1rem;">
+                        ¿Confirma que desea aprobar el <strong>Plan {{ plan.anio }}</strong>?
+                    </p>
+                    <p style="font-size:0.9rem; color:#6c757d; line-height:1.5;">
+                        Al continuar, el sistema generará automáticamente el <strong>Informe PDF</strong>, aplicará su <strong>Firma Electrónica</strong> y enviará el documento aprobado al Director de Talento Humano.
+                    </p>
                 </div>
+                
+                <div id="step-firmando" style="display:none; text-align:center; padding: 2rem 0;">
+                    <i class="pi pi-spin pi-spinner" style="font-size: 3rem; color: var(--pf-primary); margin-bottom: 1rem; display:block;"></i>
+                    <p style="font-size:1.1rem; color:#343a40; font-weight:600; margin-bottom:0.5rem;">Generando y Firmando Documento...</p>
+                    <p style="font-size:0.9rem; color:#6c757d;">Conectando con el sistema de firma de EMELNORTE. Por favor espere.</p>
+                </div>
+
             </div>
-            <div class="pf-modal-footer">
-                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalAprobarJefe')">
-                    <i class="pi pi-times"></i> Cancelar
-                </button>
-                <button type="submit" class="pf-btn pf-btn-success">
-                    <i class="pi pi-check"></i> Confirmar Aprobación
-                </button>
+            <div class="ui-dialog-footer" id="footerAprobarJefe">
+                <button type="button" class="ui-button ui-button-secondary" style="width:auto;" onclick="document.getElementById('modalAprobarJefe').classList.remove('show')">Cancelar</button>
+                <button type="submit" class="ui-button ui-button-success" style="width:auto;"><i class="pi pi-pencil"></i> Firmar y Enviar al Director TH</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Devolver (Jefe) -->
-<div class="pf-modal-overlay" id="modalDevolverJefe" style="display:none;">
-    <div class="pf-modal">
-        <div class="pf-modal-header" style="background: #991b1b;">
-            <h5><i class="pi pi-undo" style="margin-right: 8px;"></i> DEVOLVER AL ANALISTA</h5>
-            <button class="pf-modal-close" onclick="closeModal('modalDevolverJefe')">×</button>
+<div class="ui-dialog-mask" id="modalDevolverJefe">
+    <div class="ui-dialog">
+        <div class="ui-dialog-titlebar">
+            <span><i class="pi pi-undo" style="color:#EF4444; margin-right: 8px;"></i> Devolver al Analista</span>
+            <button class="ui-button-text" style="border:none; background:none; cursor:pointer;" onclick="document.getElementById('modalDevolverJefe').classList.remove('show')"><i class="pi pi-times" style="font-size:1.2rem; color:#6c757d;"></i></button>
         </div>
         <form method="POST" action="{{ url_for('planes.accion_jefe', plan_id=plan.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="action" value="devolver">
-            <div class="pf-modal-body">
-                <div class="pf-dangerbox">
-                    <i class="pi pi-exclamation-triangle"></i>
-                    <div>El plan cambiará a estado <strong>"En Corrección"</strong>. El Analista deberá realizar los ajustes y reenviar.</div>
+            <div class="ui-dialog-content">
+                <div style="background:#FEF2F2; border-left:4px solid #EF4444; padding:1rem; color:#991B1B; font-size:0.9rem; border-radius:4px; margin-bottom:1.5rem;">
+                    El plan regresará al Analista en estado <strong>"En Corrección"</strong>.
                 </div>
-                <div class="pf-field" style="margin-top: 1rem;">
-                    <label class="pf-label">Motivo de la Devolución <span>*</span></label>
-                    <textarea class="pf-textarea" name="observacion" required rows="4"
-                              placeholder="Describa las correcciones requeridas..."></textarea>
+                <div>
+                    <label style="display:block; font-size:0.9rem; font-weight:600; margin-bottom:6px; color:#495057;">Observaciones para el Analista <span style="color:#EF4444;">*</span></label>
+                    <textarea class="ui-inputtext" name="observacion" required rows="4" style="resize:none;" placeholder="Describa claramente qué temas deben corregirse o descartarse..."></textarea>
                 </div>
             </div>
-            <div class="pf-modal-footer">
-                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalDevolverJefe')">
-                    <i class="pi pi-times"></i> Cancelar
-                </button>
-                <button type="submit" class="pf-btn pf-btn-danger">
-                    <i class="pi pi-undo"></i> Devolver Plan
-                </button>
+            <div class="ui-dialog-footer">
+                <button type="button" class="ui-button ui-button-secondary" style="width:auto;" onclick="document.getElementById('modalDevolverJefe').classList.remove('show')">Cancelar</button>
+                <button type="submit" class="ui-button ui-button-danger" style="width:auto;"><i class="pi pi-undo"></i> Devolver Plan</button>
             </div>
         </form>
     </div>
@@ -296,27 +325,34 @@
 
 <!-- Enviar al Presidente (Director TH) -->
 {% if usuario.es_director_th() and plan.estado == 'EN_APROBACION' %}
-<div class="pf-modal-overlay" id="modalEnviarPresidente" style="display:none;">
-    <div class="pf-modal">
-        <div class="pf-modal-header">
-            <h5><i class="pi pi-send" style="margin-right: 8px;"></i> ENVIAR AL PRESIDENTE EJECUTIVO</h5>
-            <button class="pf-modal-close" onclick="closeModal('modalEnviarPresidente')">×</button>
+<div class="ui-dialog-mask" id="modalEnviarPresidente">
+    <div class="ui-dialog">
+        <div class="ui-dialog-titlebar">
+            <span><i class="pi pi-send" style="color:var(--pf-primary); margin-right: 8px;"></i> Enviar al Presidente Ejecutivo</span>
+            <button class="ui-button-text" style="border:none; background:none; cursor:pointer;" onclick="document.getElementById('modalEnviarPresidente').classList.remove('show')"><i class="pi pi-times" style="font-size:1.2rem; color:#6c757d;"></i></button>
         </div>
-        <form method="POST" action="{{ url_for('planes.enviar_presidente', plan_id=plan.id) }}">
+        <form method="POST" action="{{ url_for('planes.enviar_presidente', plan_id=plan.id) }}" onsubmit="simularGeneracionPDF(event, 'formEnviarPresidente')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="pf-modal-body">
-                <div class="pf-infobox">
-                    <i class="pi pi-info-circle"></i>
-                    <div>El Plan {{ plan.anio }} será enviado al Presidente Ejecutivo para la aprobación final.</div>
+            <div class="ui-dialog-content">
+                <div id="step-confirmar-dir" style="text-align:center; padding: 1rem 0;">
+                    <i class="pi pi-verified" style="font-size: 4rem; color: var(--pf-primary); margin-bottom: 1rem; display:block;"></i>
+                    <p style="font-size:1.05rem; color:#343a40; margin-bottom:1rem;">
+                        ¿Confirma que el <strong>Plan {{ plan.anio }}</strong> está listo?
+                    </p>
+                    <p style="font-size:0.9rem; color:#6c757d; line-height:1.5;">
+                        Se aplicará su firma electrónica de Director de TH al PDF y el plan será enviado al Presidente Ejecutivo para su revisión y aprobación final.
+                    </p>
+                </div>
+                
+                <div id="step-firmando-dir" style="display:none; text-align:center; padding: 2rem 0;">
+                    <i class="pi pi-spin pi-spinner" style="font-size: 3rem; color: var(--pf-primary); margin-bottom: 1rem; display:block;"></i>
+                    <p style="font-size:1.1rem; color:#343a40; font-weight:600; margin-bottom:0.5rem;">Generando y Firmando Documento...</p>
+                    <p style="font-size:0.9rem; color:#6c757d;">Conectando con el sistema de firma de EMELNORTE. Por favor espere.</p>
                 </div>
             </div>
-            <div class="pf-modal-footer">
-                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalEnviarPresidente')">
-                    <i class="pi pi-times"></i> Cancelar
-                </button>
-                <button type="submit" class="pf-btn pf-btn-primary">
-                    <i class="pi pi-send"></i> Confirmar Envío
-                </button>
+            <div class="ui-dialog-footer" id="footerEnviarPresidente">
+                <button type="button" class="ui-button ui-button-secondary" style="width:auto;" onclick="document.getElementById('modalEnviarPresidente').classList.remove('show')">Cancelar</button>
+                <button type="submit" class="ui-button" style="width:auto;"><i class="pi pi-pencil"></i> Firmar y Enviar a Presidente</button>
             </div>
         </form>
     </div>
@@ -325,31 +361,59 @@
 
 <!-- Aprobar Final (Presidente) -->
 {% if usuario.es_presidente() and plan.estado == 'EN_APROBACION' %}
-<div class="pf-modal-overlay" id="modalAprobarFinal" style="display:none;">
-    <div class="pf-modal">
-        <div class="pf-modal-header" style="background: #166534;">
-            <h5><i class="pi pi-verified" style="margin-right: 8px;"></i> APROBACIÓN FINAL DEL PLAN</h5>
-            <button class="pf-modal-close" onclick="closeModal('modalAprobarFinal')">×</button>
+<div class="ui-dialog-mask" id="modalAprobarFinal">
+    <div class="ui-dialog">
+        <div class="ui-dialog-titlebar">
+            <span><i class="pi pi-verified" style="color:#10B981; margin-right: 8px;"></i> Aprobación Final del Plan</span>
+            <button class="ui-button-text" style="border:none; background:none; cursor:pointer;" onclick="document.getElementById('modalAprobarFinal').classList.remove('show')"><i class="pi pi-times" style="font-size:1.2rem; color:#6c757d;"></i></button>
         </div>
-        <form method="POST" action="{{ url_for('planes.aprobar_final', plan_id=plan.id) }}">
+        <form method="POST" action="{{ url_for('planes.aprobar_final', plan_id=plan.id) }}" onsubmit="simularGeneracionPDF(event, 'formAprobarFinal')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="pf-modal-body">
-                <div class="pf-infobox" style="background: #d1e7dd; border-color: #a3cfbb; color: #0a3622;">
-                    <i class="pi pi-info-circle"></i>
-                    <div>¿Confirma la aprobación definitiva del <strong>Plan de Capacitación {{ plan.anio }}</strong>? Una vez aprobado, el plan quedará bloqueado en modo solo lectura.</div>
+            <div class="ui-dialog-content">
+                <div id="step-confirmar-pres" style="background:#F0FDF4; border-left:4px solid #10B981; padding:1.5rem; color:#065F46; font-size:1rem; border-radius:4px; line-height:1.5;">
+                    ¿Confirma la aprobación definitiva del <strong>Plan Anual de Capacitación {{ plan.anio }}</strong>?<br><br>
+                    <strong>Importante:</strong> Al aprobar, se aplicará la firma electrónica del Presidente, el plan cambiará a estado "Aprobado" y quedará bloqueado permanentemente para iniciar la fase de ejecución.
+                </div>
+
+                <div id="step-firmando-pres" style="display:none; text-align:center; padding: 2rem 0;">
+                    <i class="pi pi-spin pi-spinner" style="font-size: 3rem; color: #10B981; margin-bottom: 1rem; display:block;"></i>
+                    <p style="font-size:1.1rem; color:#343a40; font-weight:600; margin-bottom:0.5rem;">Generando y Firmando Documento Definitivo...</p>
+                    <p style="font-size:0.9rem; color:#6c757d;">Conectando con el sistema de firma de EMELNORTE. Por favor espere.</p>
                 </div>
             </div>
-            <div class="pf-modal-footer">
-                <button type="button" class="pf-btn pf-btn-secondary" onclick="closeModal('modalAprobarFinal')">
-                    <i class="pi pi-times"></i> Cancelar
-                </button>
-                <button type="submit" class="pf-btn pf-btn-success">
-                    <i class="pi pi-verified"></i> Aprobar Definitivamente
-                </button>
+            <div class="ui-dialog-footer" id="footerAprobarFinal">
+                <button type="button" class="ui-button ui-button-secondary" style="width:auto;" onclick="document.getElementById('modalAprobarFinal').classList.remove('show')">Cancelar</button>
+                <button type="submit" class="ui-button ui-button-success" style="width:auto;"><i class="pi pi-pencil"></i> Firmar y Aprobar Definitivamente</button>
             </div>
         </form>
     </div>
 </div>
 {% endif %}
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function simularGeneracionPDF(e, formId) {
+    e.preventDefault();
+    const form = e.target;
+    
+    // Ocultar confirmacion y footer, mostrar loader de firma
+    const contentDiv = form.querySelector('.ui-dialog-content');
+    const footer = form.querySelector('.ui-dialog-footer');
+    
+    // Custom logic to hide step 1 and show step 2 based on children IDs
+    Array.from(contentDiv.children).forEach(child => {
+        if(child.id && child.id.startsWith('step-confirmar')) child.style.display = 'none';
+        if(child.id && child.id.startsWith('step-firmando')) child.style.display = 'block';
+    });
+    
+    if(footer) footer.style.display = 'none';
+    
+    // Simular el proceso de firmado
+    setTimeout(() => {
+        form.submit();
+    }, 2500);
+}
+</script>
 {% endblock %}

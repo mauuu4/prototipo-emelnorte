@@ -19,7 +19,7 @@
                 </div>
                 <hr class="divider">
                 <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                    <span>Empresa:</span> <strong>{{ capacitacion.empresa_capacitadora or '—' }}</strong>
+                    <span>Empresa:</span> <strong>{{ capacitacion.empresa.razon_social if capacitacion.empresa else '—' }}</strong>
                 </div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
                     <span>Inicio:</span> <span>{{ capacitacion.fecha_inicio.strftime('%d/%m/%Y') }}</span>
@@ -81,7 +81,9 @@
                                 <th>Nombres</th>
                                 <th>Cédula</th>
                                 <th>Cargo</th>
-                                <th style="text-align:center; width:80px;">Acciones</th>
+                                <th style="text-align:center;">Certificado</th>
+                                <th style="text-align:center;">Eval.</th>
+                                <th style="text-align:center; width:100px;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -92,6 +94,29 @@
                                 <td>{{ p.nombres }}</td>
                                 <td class="text-muted-sm">{{ p.cedula }}</td>
                                 <td style="font-size:0.82rem;">{{ p.cargo or '—' }}</td>
+                                <td style="text-align:center;">
+                                    {% if p.ruta_certificado %}
+                                        <a href="{{ url_for('ejecucion.descargar_certificado', participante_id=p.id) }}" class="pf-btn pf-btn-success" style="font-size:0.7rem; padding:0.2rem 0.5rem;" target="_blank">
+                                            <i class="pi pi-download"></i> Ver PDF
+                                        </a>
+                                    {% else %}
+                                        <form action="{{ url_for('ejecucion.subir_certificado', capacitacion_id=capacitacion.id, participante_id=p.id) }}" method="POST" enctype="multipart/form-data" style="display:flex; gap:0.2rem; justify-content:center; align-items:center;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="file" name="archivo" accept=".pdf,.png,.jpg,.jpeg" style="width:120px; font-size:0.7rem;" required>
+                                            <button type="submit" class="pf-btn pf-btn-primary" style="font-size:0.7rem; padding:0.2rem 0.5rem;">Subir</button>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align:center;">
+                                    {% if p.evaluacion %}
+                                        <span title="Evaluado" style="color:#10b981;"><i class="pi pi-check-circle"></i></span>
+                                    {% else %}
+                                        <button type="button" class="pf-icon-btn" style="background:#e0e7ff; color:#4f46e5; border:none;" title="Copiar Link de Evaluación" 
+                                                onclick="navigator.clipboard.writeText('{{ url_for('ejecucion.evaluar', capacitacion_id=capacitacion.id, participante_id=p.id, _external=True) }}'); alert('Enlace copiado al portapapeles');">
+                                            <i class="pi pi-link"></i>
+                                        </button>
+                                    {% endif %}
+                                </td>
                                 <td style="text-align:center;">
                                     <form action="{{ url_for('ejecucion.eliminar_participante', capacitacion_id=capacitacion.id, participante_id=p.id) }}"
                                           method="POST" style="display:inline;"

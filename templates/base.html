@@ -487,11 +487,14 @@
             </a>
         </li>
         <li class="menu-section">Ejecución</li>
-        <li>
-            <a href="{{ url_for('ejecucion.lista') }}"
-               class="{% if request.endpoint and request.endpoint.startswith('ejecucion') %}active{% endif %}">
-                <i class="pi pi-play-circle"></i> Capacitaciones Ejecutadas
-            </a>
+        <li class="pf-menu-item {% if request.endpoint and request.endpoint.startswith('ejecucion.') %}active{% endif %}">
+            <a href="{{ url_for('ejecucion.lista') }}"><i class="pi pi-check-square"></i> Ejecución de Capacitación</a>
+        </li>
+        <li class="pf-menu-item {% if request.endpoint and request.endpoint.startswith('empresas.') %}active{% endif %}">
+            <a href="{{ url_for('empresas.lista') }}"><i class="pi pi-briefcase"></i> Empresas Capacitadoras</a>
+        </li>
+        <li class="pf-menu-item {% if request.endpoint and request.endpoint.startswith('reportes.') %}active{% endif %}">
+            <a href="{{ url_for('reportes.index') }}"><i class="pi pi-chart-bar"></i> Reportes y Dashboard</a>
         </li>
 
         {# ─── DIRECTOR DE ÁREA: Solo Necesidades ─── #}
