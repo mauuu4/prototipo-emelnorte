@@ -94,7 +94,12 @@ class Usuario(db.Model):
         return self.rol == 'JEFE_PERSONAL'
 
     def es_presidente(self):
+        """Presidente (Aprobacion final)"""
         return self.rol == 'PRESIDENTE'
+        
+    def es_empleado(self):
+        """Empleado (Autogestión)"""
+        return self.rol == 'EMPLEADO'
 
 
 class PlanCapacitacion(db.Model):
@@ -178,6 +183,8 @@ class TemaCapacitacion(db.Model):
     estado = db.Column(db.String(20), nullable=False, default='ACTIVO')
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
 
+    prioridad = db.Column(db.String(20), nullable=False, default='MEDIA') # ALTA, MEDIA, BAJA
+
     # Relaciones
     tema_seleccionado = db.relationship('TemaSeleccionado', backref='tema', uselist=False, cascade='all, delete-orphan')
 
@@ -195,6 +202,8 @@ class TemaCapacitacion(db.Model):
         if self.usuario and self.usuario.direccion:
             return self.usuario.direccion.nombre
         return 'Sin Dirección'
+
+
 
 
 class TemaSeleccionado(db.Model):

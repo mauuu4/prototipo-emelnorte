@@ -32,11 +32,6 @@ def lista():
     """RN-02, RN-03: Lista de necesidades del director de área"""
     usuario = get_usuario_actual()
 
-    # Solo directores de área (no el Director de TH que tiene otra función)
-    if usuario.es_director_th():
-        flash('Como Director de Talento Humano, su función es revisar el Plan de Capacitación, no registrar necesidades.', 'info')
-        return redirect(url_for('revision.lista_director'))
-
     plan = get_plan_vigente()
     if not plan:
         flash('No existe un Plan de Capacitación para el año vigente. Espere la notificación del Analista de Talento Humano.', 'warning')
@@ -75,10 +70,6 @@ def nuevo():
     """RN-02: Registrar una nueva necesidad de capacitación (desde modal)"""
     usuario = get_usuario_actual()
 
-    if usuario.es_director_th():
-        flash('No tiene permisos para registrar necesidades.', 'danger')
-        return redirect(url_for('auth.dashboard'))
-
     plan = get_plan_vigente()
     if not plan:
         flash('No existe un plan vigente.', 'warning')
@@ -110,6 +101,8 @@ def nuevo():
     presupuesto_referencial = request.form.get('presupuesto_referencial', type=float)
     mes_ejecucion = request.form.get('mes_ejecucion', type=int)
 
+    prioridad = request.form.get('prioridad', default='MEDIA')
+
     if not all([nombre, num_participantes, modalidad, horas, presupuesto_referencial, mes_ejecucion]):
         flash('Todos los campos son obligatorios.', 'danger')
         return redirect(url_for('necesidades.lista'))
@@ -124,7 +117,8 @@ def nuevo():
         usuario_id=usuario.id,
         plan_id=plan.id,
         es_del_analista=False,
-        estado='ACTIVO'
+        estado='ACTIVO',
+        prioridad=prioridad
     )
     db.session.add(tema)
     db.session.flush()
@@ -167,6 +161,8 @@ def editar(tema_id):
     tema.horas = request.form.get('horas', type=float) or tema.horas
     tema.presupuesto_referencial = request.form.get('presupuesto_referencial', type=float) or tema.presupuesto_referencial
     tema.mes_ejecucion = request.form.get('mes_ejecucion', type=int) or tema.mes_ejecucion
+
+    tema.prioridad = request.form.get('prioridad') or tema.prioridad
 
     db.session.commit()
     flash('Necesidad actualizada exitosamente.', 'success')

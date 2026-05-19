@@ -185,6 +185,7 @@ body { color: var(--pf-text); font-family: -apple-system, BlinkMacSystemFont, "S
                             <tr>
                                 <th style="width:40px; text-align:center;"></th>
                                 <th>Tema de Capacitación</th>
+                                <th style="width:100px;">Prioridad</th>
                                 <th style="width:90px;">Modalidad</th>
                                 <th style="width:60px; text-align:center;">Horas</th>
                                 <th style="width:60px; text-align:center;">Partic.</th>
@@ -214,6 +215,15 @@ body { color: var(--pf-text); font-family: -apple-system, BlinkMacSystemFont, "S
                                     {% if tema.es_del_analista %}<div style="margin-top:2px;"><span class="ui-badge ui-badge-warning">Agregado por ti</span></div>{% endif %}
                                 </td>
                                 <td>
+                                    {% set nivel = tema.prioridad %}
+                                    <span style="font-size:0.75rem; padding:3px 8px; font-weight:700; border-radius:10px; display:inline-block;
+                                        {% if nivel == 'ALTA' %}background:#fee2e2;color:#991b1b;
+                                        {% elif nivel == 'MEDIA' %}background:#fef3c7;color:#92400e;
+                                        {% else %}background:#dcfce7;color:#166534;{% endif %}">
+                                        {{ nivel }}
+                                    </span>
+                                </td>
+                                <td>
                                     <span class="ui-badge {% if tema.modalidad == 'PRESENCIAL' %}ui-badge-success{% elif tema.modalidad == 'VIRTUAL' %}ui-badge-info{% else %}ui-badge-warning{% endif %}">
                                         {{ tema.modalidad }}
                                     </span>
@@ -226,7 +236,7 @@ body { color: var(--pf-text); font-family: -apple-system, BlinkMacSystemFont, "S
                                     <div style="display:flex; justify-content:center; gap:4px;">
                                         <!-- Botón Editar -->
                                         <button type="button" class="ui-button ui-button-text info" 
-                                                onclick="openEditModal({{ tema.id }}, '{{ tema.nombre|escape }}', {{ tema.usuario.direccion_id }}, '{{ tema.modalidad }}', {{ tema.num_participantes }}, {{ tema.horas }}, {{ tema.presupuesto_referencial }}, {{ tema.mes_ejecucion }})"
+                                                onclick="openEditModal({{ tema.id }}, '{{ tema.nombre|escape }}', {{ tema.usuario.direccion_id }}, '{{ tema.modalidad }}', {{ tema.num_participantes }}, {{ tema.horas }}, {{ tema.presupuesto_referencial }}, {{ tema.mes_ejecucion }}, '{{ tema.prioridad }}')"
                                                 title="Editar Tema">
                                             <i class="pi pi-pencil"></i>
                                         </button>
@@ -378,6 +388,14 @@ body { color: var(--pf-text); font-family: -apple-system, BlinkMacSystemFont, "S
                             {% for dir in direcciones %}<option value="{{ dir.id }}">{{ dir.nombre }}</option>{% endfor %}
                         </select>
                     </div>
+                    <div style="flex:2;">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:4px; color:#495057;">Prioridad *</label>
+                        <select name="prioridad" id="t_prioridad" class="ui-inputtext" required>
+                            <option value="ALTA">Alta</option>
+                            <option value="MEDIA" selected>Media</option>
+                            <option value="BAJA">Baja</option>
+                        </select>
+                    </div>
                     <div style="flex:1;">
                         <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:4px; color:#495057;">Modalidad *</label>
                         <select name="modalidad" id="t_modalidad" class="ui-inputtext" required>
@@ -431,6 +449,14 @@ body { color: var(--pf-text); font-family: -apple-system, BlinkMacSystemFont, "S
                         <select name="direccion_id" class="ui-inputtext" required>
                             <option value="">-- Seleccionar --</option>
                             {% for dir in direcciones %}<option value="{{ dir.id }}">{{ dir.nombre }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div style="flex:2;">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:4px; color:#495057;">Prioridad *</label>
+                        <select name="prioridad" class="ui-inputtext" required>
+                            <option value="ALTA">Alta</option>
+                            <option value="MEDIA" selected>Media</option>
+                            <option value="BAJA">Baja</option>
                         </select>
                     </div>
                     <div style="flex:1;">
@@ -530,16 +556,17 @@ function openNewModal() {
     document.getElementById('modalTema').classList.add('show');
 }
 
-function openEditModal(id, nombre, dir_id, modalidad, partic, horas, ppto, mes) {
+function openEditModal(id, nombre, dir_id, modalidad, partic, horas, ppto, mes, prioridad) {
     document.getElementById('temaId').value = id;
     document.getElementById('t_nombre').value = nombre;
     document.getElementById('t_direccion').value = dir_id;
-    document.getElementById('t_direccion').disabled = true; // No se cambia de direccion al editar
+    document.getElementById('t_direccion').disabled = false; // Permitimos cambiar la direccion
     document.getElementById('t_modalidad').value = modalidad;
     document.getElementById('t_partic').value = partic;
     document.getElementById('t_horas').value = horas;
     document.getElementById('t_ppto').value = ppto;
     document.getElementById('t_mes').value = mes;
+    document.getElementById('t_prioridad').value = prioridad;
     
     document.getElementById('modalTemaTitle').innerHTML = '<i class="pi pi-pencil" style="color:var(--pf-primary); margin-right:6px;"></i> Editar Tema';
     document.getElementById('modalTema').classList.add('show');

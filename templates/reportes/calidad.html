@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluación de Calidad - SIGEERN{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="pi pi-star-fill" style="color: var(--warning);"></i> Evaluación de Calidad de Capacitadores</h2>
+    <button class="pf-btn pf-btn-primary" onclick="window.print()">
+        <i class="pi pi-print"></i> Imprimir Ranking
+    </button>
+</div>
+
+<div class="pf-panel mb-4">
+    <div class="pf-panel-header" style="background: #1a73e8;"><i class="pi pi-info-circle"></i> Acerca de este reporte</div>
+    <div class="pf-panel-content">
+        Este reporte consolida las respuestas de las <strong>Encuestas de Satisfacción</strong> que los empleados llenan desde su portal de Autogestión al finalizar un curso.
+        Permite a la Dirección de Talento Humano tomar decisiones informadas sobre la recontratación de <strong>Empresas Capacitadoras</strong> basadas en la calidad real percibida por el personal.
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="pf-panel">
+            <div class="pf-panel-header"><i class="pi pi-chart-bar"></i> Ranking de Proveedores de Capacitación</div>
+            <div class="pf-panel-content" style="padding: 0;">
+                <table class="pf-datatable">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px; text-align:center;">Top</th>
+                            <th>Empresa Capacitadora</th>
+                            <th style="text-align:center;">Evaluaciones</th>
+                            <th style="text-align:center;">Calidad Curso</th>
+                            <th style="text-align:center;">Desempeño Instructor</th>
+                            <th style="text-align:center; background: #f8f9fa;">Promedio General</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in ranking %}
+                        <tr>
+                            <td style="text-align:center;">
+                                {% if loop.index == 1 %}
+                                <i class="pi pi-trophy" style="color: #f59e0b; font-size: 1.5rem;"></i>
+                                {% elif loop.index == 2 %}
+                                <i class="pi pi-trophy" style="color: #94a3b8; font-size: 1.3rem;"></i>
+                                {% elif loop.index == 3 %}
+                                <i class="pi pi-trophy" style="color: #b45309; font-size: 1.1rem;"></i>
+                                {% else %}
+                                <strong>{{ loop.index }}</strong>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: #333; font-size: 1.05rem;">{{ item.empresa.razon_social }}</div>
+                                <div style="font-size: 0.8rem; color: #666;">Especialidad: {{ item.empresa.especialidad }}</div>
+                            </td>
+                            <td style="text-align:center;">
+                                <span style="background: #e2e8f0; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">
+                                    {{ item.total_evals }} respuestas
+                                </span>
+                            </td>
+                            <td style="text-align:center;">
+                                <div style="font-weight: 700; color: #1e293b;">{{ item.promedio_curso }} <i class="pi pi-star-fill" style="color: #f59e0b; font-size: 0.8rem;"></i></div>
+                            </td>
+                            <td style="text-align:center;">
+                                <div style="font-weight: 700; color: #1e293b;">{{ item.promedio_empresa }} <i class="pi pi-star-fill" style="color: #f59e0b; font-size: 0.8rem;"></i></div>
+                            </td>
+                            <td style="text-align:center; background: #f8f9fa;">
+                                {% set pct = (item.promedio_general / 5) * 100 %}
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <div style="font-weight: 800; font-size: 1.2rem; color: {% if item.promedio_general >= 4.0 %}#16a34a{% elif item.promedio_general >= 3.0 %}#ca8a04{% else %}#dc2626{% endif %};">
+                                        {{ item.promedio_general }}
+                                    </div>
+                                    <div style="width: 60px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                                        <div style="height: 100%; width: {{ pct }}%; background: {% if item.promedio_general >= 4.0 %}#16a34a{% elif item.promedio_general >= 3.0 %}#ca8a04{% else %}#dc2626{% endif %};"></div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not ranking %}
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding: 2rem; color: #666;">No hay datos de empresas capacitadoras.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

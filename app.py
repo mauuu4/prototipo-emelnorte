@@ -8,6 +8,9 @@ from config import create_app
 
 app = create_app()
 
+from routes.empleado import empleado_bp
+app.register_blueprint(empleado_bp)
+
 if __name__ == '__main__':
     print("\n" + "="*60)
     print("  EMELNORTE - SIGEERN")

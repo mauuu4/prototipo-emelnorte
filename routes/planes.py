@@ -72,8 +72,9 @@ def detalle(plan_id):
 
     temas_por_direccion = {}
     for tema in plan.temas.filter(TemaCapacitacion.estado == 'ACTIVO').order_by(TemaCapacitacion.fecha_creacion):
-        # Mostrar todos los temas, incluso si el director no los ha enviado aún para propósitos de simulación y visibilidad
-
+        # Mostrar solo si el director ya envió sus temas o si el tema fue agregado por el analista
+        if not tema.es_del_analista and tema.usuario_id not in usuarios_que_enviaron:
+            continue
             
         if tema.usuario and tema.usuario.direccion:
             dir_nombre = tema.usuario.direccion.nombre
@@ -141,6 +142,7 @@ def nuevo_tema_ajax(plan_id):
     presupuesto_referencial = request.form.get('presupuesto_referencial', type=float)
     mes_ejecucion = request.form.get('mes_ejecucion', type=int)
     direccion_id = request.form.get('direccion_id', type=int)
+    prioridad = request.form.get('prioridad', default='MEDIA')
 
     if not all([nombre, num_participantes, modalidad, horas, presupuesto_referencial, mes_ejecucion, direccion_id]):
         return jsonify({'success': False, 'message': 'Todos los campos son obligatorios.'})
@@ -164,7 +166,8 @@ def nuevo_tema_ajax(plan_id):
         usuario_id=usuario_asociado_id,
         plan_id=plan_id,
         es_del_analista=True,
-        estado='ACTIVO'
+        estado='ACTIVO',
+        prioridad=prioridad
     )
     db.session.add(tema)
     db.session.flush()
@@ -210,6 +213,7 @@ def nuevo_extra_ajax(plan_id):
     presupuesto_referencial = 0.0 # Es gratuito
     mes_ejecucion = request.form.get('mes_ejecucion', type=int)
     direccion_id = request.form.get('direccion_id', type=int)
+    prioridad = request.form.get('prioridad', default='MEDIA')
 
     if not all([nombre, num_participantes, modalidad, horas, mes_ejecucion, direccion_id]):
         return jsonify({'success': False, 'message': 'Todos los campos son obligatorios.'})
@@ -233,7 +237,8 @@ def nuevo_extra_ajax(plan_id):
         usuario_id=usuario_asociado_id,
         plan_id=plan_id,
         es_del_analista=True,
-        estado='EXTRA_PLAN'
+        estado='EXTRA_PLAN',
+        prioridad=prioridad
     )
     db.session.add(tema)
     db.session.flush()
@@ -280,6 +285,16 @@ def editar_tema_ajax(plan_id, tema_id):
     tema.horas = request.form.get('horas', type=float) or tema.horas
     tema.presupuesto_referencial = request.form.get('presupuesto_referencial', type=float) or tema.presupuesto_referencial
     tema.mes_ejecucion = request.form.get('mes_ejecucion', type=int) or tema.mes_ejecucion
+    tema.prioridad = request.form.get('prioridad') or tema.prioridad
+    
+    nuevo_direccion_id = request.form.get('direccion_id', type=int)
+    if nuevo_direccion_id:
+        from models import Usuario as U
+        usr_dir = U.query.filter_by(direccion_id=nuevo_direccion_id, rol='DIRECTOR').first()
+        if usr_dir:
+            tema.usuario_id = usr_dir.id
+            
+
 
     # Actualizar presupuesto aprobado si esta seleccionado
     ts = TemaSeleccionado.query.filter_by(tema_id=tema.id, plan_id=plan_id).first()

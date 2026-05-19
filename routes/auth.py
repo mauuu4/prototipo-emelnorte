@@ -87,6 +87,10 @@ def logout():
 def dashboard():
     """Dashboard principal - cada rol ve solo su información"""
     usuario = get_usuario_actual()
+    
+    if usuario.es_empleado():
+        return redirect(url_for('empleado.perfil'))
+
     stats = {}
 
     if usuario.es_analista():

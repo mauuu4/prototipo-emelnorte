@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Perfil - SIGEERN{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-bar">
+    Inicio / <span>Portal del Empleado</span>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- INFO DEL EMPLEADO -->
+    <div class="col-md-4">
+        <div class="pf-panel" style="height: 100%; text-align: center; padding: 2rem 1rem;">
+            <div style="width: 80px; height: 80px; background: #e0e7ff; color: #3730a3; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 2.5rem; margin-bottom: 1rem;">
+                <i class="pi pi-user"></i>
+            </div>
+            <h4 style="font-weight: 700; color: #333; font-size: 1.2rem; margin-bottom: 4px;">{{ usuario.nombre }}</h4>
+            <div style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">C.I: {{ usuario.cedula }}</div>
+            <div style="display: inline-block; background: #f1f5f9; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; color: #475569;">
+                <i class="pi pi-briefcase"></i> {{ usuario.direccion.nombre if usuario.direccion else 'Sin Dirección' }}
+            </div>
+            
+            <div style="margin-top: 2rem; border-top: 1px dashed var(--border); padding-top: 1rem; display: flex; justify-content: space-around;">
+                <div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">{{ historial|length }}</div>
+                    <div style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Cursos</div>
+                </div>
+                <div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--warning);">{{ pendientes_eval|length }}</div>
+                    <div style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Encuestas Pend.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- TAREAS PENDIENTES (EVALUACIONES) -->
+    <div class="col-md-8">
+        <div class="pf-panel" style="height: 100%;">
+            <div class="pf-panel-header" style="background: var(--warning); display:flex; gap:8px;">
+                <i class="pi pi-bell"></i> Tareas Pendientes
+            </div>
+            <div class="pf-panel-content">
+                {% if pendientes_eval %}
+                    {% for item in pendientes_eval %}
+                    <div style="border: 1px solid var(--border); border-left: 4px solid var(--warning); border-radius: 4px; padding: 1.2rem; margin-bottom: 1rem; background: #fffaf0;">
+                        <h6 style="margin-bottom: 4px; font-weight: 700; color: #333;">{{ item.tema_nombre }}</h6>
+                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
+                            <i class="pi pi-calendar" style="font-size: 0.8rem;"></i> {{ item.capacitacion.fecha_inicio.strftime('%d/%m/%Y') }} - {{ item.capacitacion.fecha_fin.strftime('%d/%m/%Y') }}
+                            <span style="margin: 0 8px;">|</span>
+                            <i class="pi pi-building" style="font-size: 0.8rem;"></i> {{ item.empresa }}
+                        </div>
+                        
+                        <form action="{{ url_for('empleado.evaluar') }}" method="POST" style="background: #fff; padding: 1rem; border: 1px solid #eee; border-radius: 4px;">
+                            <input type="hidden" name="participante_id" value="{{ item.participacion.id }}">
+                            <input type="hidden" name="capacitacion_id" value="{{ item.capacitacion.id }}">
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:6px;">Calidad del Curso *</label>
+                                    <div class="star-rating">
+                                        <label><input type="radio" name="calificacion_curso" value="1" required> 1</label>
+                                        <label><input type="radio" name="calificacion_curso" value="2"> 2</label>
+                                        <label><input type="radio" name="calificacion_curso" value="3"> 3</label>
+                                        <label><input type="radio" name="calificacion_curso" value="4"> 4</label>
+                                        <label><input type="radio" name="calificacion_curso" value="5"> 5</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:6px;">Desempeño del Capacitador *</label>
+                                    <div class="star-rating">
+                                        <label><input type="radio" name="calificacion_empresa" value="1" required> 1</label>
+                                        <label><input type="radio" name="calificacion_empresa" value="2"> 2</label>
+                                        <label><input type="radio" name="calificacion_empresa" value="3"> 3</label>
+                                        <label><input type="radio" name="calificacion_empresa" value="4"> 4</label>
+                                        <label><input type="radio" name="calificacion_empresa" value="5"> 5</label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:6px;">Comentarios (Opcional)</label>
+                                    <textarea name="comentarios" class="pf-textarea" rows="2" style="font-size:0.85rem;" placeholder="¿Qué le pareció la capacitación?"></textarea>
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="pf-btn pf-btn-primary" style="padding: 0.3rem 1rem; font-size: 0.85rem;">
+                                        <i class="pi pi-send"></i> Enviar Evaluación
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; padding: 3rem 1rem; color: #888;">
+                        <i class="pi pi-check-circle" style="font-size: 3rem; color: #e2e8f0; margin-bottom: 1rem; display: block;"></i>
+                        ¡Todo al día! No tiene evaluaciones pendientes.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HISTORIAL Y CERTIFICADOS -->
+<div class="pf-panel">
+    <div class="pf-panel-header" style="background: var(--sidebar-bg); display:flex; gap:8px;">
+        <i class="pi pi-history"></i> Historial de Capacitación y Certificados
+    </div>
+    <div class="pf-panel-content" style="padding: 0;">
+        {% if historial %}
+        <table class="pf-datatable">
+            <thead>
+                <tr>
+                    <th style="width: 50px; text-align:center;">#</th>
+                    <th>Tema de Capacitación</th>
+                    <th>Fechas</th>
+                    <th>Empresa</th>
+                    <th style="text-align:center;">Evaluación</th>
+                    <th style="text-align:center; width: 140px;">Certificado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in historial %}
+                <tr>
+                    <td style="text-align:center; color:#888;">{{ loop.index }}</td>
+                    <td>
+                        <div style="font-weight: 600; color: #333;">{{ item.tema_nombre }}</div>
+                        <div style="font-size: 0.75rem; color: #888;">
+                            Modalidad: {{ item.capacitacion.tema_seleccionado.tema.modalidad }} &bull; 
+                            {{ item.capacitacion.duracion_horas }} horas
+                        </div>
+                    </td>
+                    <td style="font-size: 0.85rem;">
+                        {{ item.capacitacion.fecha_inicio.strftime('%d/%b/%y') }} - {{ item.capacitacion.fecha_fin.strftime('%d/%b/%y') }}
+                    </td>
+                    <td style="font-size: 0.85rem; color: #555;">{{ item.empresa }}</td>
+                    <td style="text-align:center;">
+                        {% if item.evaluacion %}
+                            <span class="estado-badge estado-APROBADO" title="Encuesta enviada"><i class="pi pi-check"></i> Enviada</span>
+                        {% else %}
+                            <span class="estado-badge estado-EN_CORRECCION" title="Encuesta pendiente"><i class="pi pi-clock"></i> Pendiente</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        {% if item.capacitacion.estado == 'FINALIZADO' %}
+                        <a href="{{ url_for('empleado.descargar_certificado', participante_id=item.participacion.id) }}" class="pf-btn pf-btn-success" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="return confirm('Simulación: Se generará un PDF de su certificado.');">
+                            <i class="pi pi-download"></i> Descargar
+                        </a>
+                        {% else %}
+                        <span style="font-size: 0.75rem; color: #888;">En Ejecución</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 4rem 1rem; color: #888;">
+            <i class="pi pi-folder-open" style="font-size: 3rem; color: #e2e8f0; margin-bottom: 1rem; display: block;"></i>
+            Aún no tiene historial de capacitaciones registradas en el sistema.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.star-rating {
+    display: flex; gap: 0.5rem; justify-content: space-between;
+    background: #f8f9fa; padding: 8px 12px; border-radius: 4px; border: 1px solid #e9ecef;
+}
+.star-rating label {
+    cursor: pointer; font-size: 0.8rem; font-weight: 500; color: #555;
+    display: flex; align-items: center; gap: 4px;
+}
+</style>
+{% endblock %}

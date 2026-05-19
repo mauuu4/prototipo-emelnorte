@@ -493,12 +493,15 @@
         <li class="pf-menu-item {% if request.endpoint and request.endpoint.startswith('empresas.') %}active{% endif %}">
             <a href="{{ url_for('empresas.lista') }}"><i class="pi pi-briefcase"></i> Empresas Capacitadoras</a>
         </li>
-        <li class="pf-menu-item {% if request.endpoint and request.endpoint.startswith('reportes.') %}active{% endif %}">
+        <li class="pf-menu-item {% if request.endpoint == 'reportes.index' %}active{% endif %}">
             <a href="{{ url_for('reportes.index') }}"><i class="pi pi-chart-bar"></i> Reportes y Dashboard</a>
         </li>
+        <li class="pf-menu-item {% if request.endpoint == 'reportes.calidad' %}active{% endif %}">
+            <a href="{{ url_for('reportes.calidad') }}"><i class="pi pi-star-fill"></i> Evaluación de Calidad</a>
+        </li>
 
-        {# ─── DIRECTOR DE ÁREA: Solo Necesidades ─── #}
-        {% elif session.usuario_rol == 'DIRECTOR' and not session.get('es_director_th') %}
+        {# ─── DIRECTORES (Todos) ─── #}
+        {% elif session.usuario_rol == 'DIRECTOR' %}
         <li class="menu-section">Mis Necesidades</li>
         <li>
             <a href="{{ url_for('necesidades.lista') }}"
@@ -507,8 +510,8 @@
             </a>
         </li>
 
-        {# ─── DIRECTOR DE TH: Revisar y Enviar al Presidente ─── #}
-        {% elif session.usuario_rol == 'DIRECTOR' and session.get('es_director_th') %}
+        {# ─── DIRECTOR DE TH: Además de sus necesidades, revisa el plan ─── #}
+        {% if session.get('es_director_th') %}
         <li class="menu-section">Revisión del Plan</li>
         <li>
             <a href="{{ url_for('revision.lista_director') }}"
@@ -516,6 +519,7 @@
                 <i class="pi pi-send"></i> Revisión del Plan
             </a>
         </li>
+        {% endif %}
 
         {# ─── JEFE DE PERSONAL ─── #}
         {% elif session.usuario_rol == 'JEFE_PERSONAL' %}
@@ -534,6 +538,16 @@
             <a href="{{ url_for('revision.lista_presidente') }}"
                class="{% if request.endpoint == 'revision.lista_presidente' %}active{% endif %}">
                 <i class="pi pi-verified"></i> Aprobación Final
+            </a>
+        </li>
+
+        {# ─── EMPLEADO ─── #}
+        {% elif session.usuario_rol == 'EMPLEADO' %}
+        <li class="menu-section">Autogestión</li>
+        <li>
+            <a href="{{ url_for('empleado.perfil') }}"
+               class="{% if request.endpoint and request.endpoint.startswith('empleado') %}active{% endif %}">
+                <i class="pi pi-user"></i> Mi Historial y Certificados
             </a>
         </li>
         {% endif %}

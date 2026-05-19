@@ -13,6 +13,7 @@ def inicializar_datos():
         # Aún si ya hay usuarios, seed empleados si faltan
         if Empleado.query.count() == 0:
             _seed_empleados()
+        _seed_plan_2026()
         return
 
     print("\n" + "="*50)
@@ -117,6 +118,15 @@ def inicializar_datos():
             rol='PRESIDENTE',
             direccion_id=None
         ),
+        # EMPLEADO - Autogestión
+        Usuario(
+            id=10,
+            nombre='Carlos Alberto Andrade Pérez',
+            cedula='1001234567',
+            correo='candrade@emelnorte.ec',
+            rol='EMPLEADO',
+            direccion_id=2
+        ),
     ]
 
     for u in usuarios:
@@ -136,6 +146,11 @@ def inicializar_datos():
     # ========================================
     _seed_plan_2025()
 
+    # ========================================
+    # 5. ESCENARIO PLAN 2026 (Para pruebas de envío del director)
+    # ========================================
+    _seed_plan_2026()
+
     print("  [OK] Datos inicializados correctamente")
     print("="*50 + "\n")
     print("\n  USUARIOS PARA PRUEBA:")
@@ -149,6 +164,7 @@ def inicializar_datos():
     print("  7. Director de Talento Humano   DIRECTOR(DTH)  - Revisa plan, envia al Presidente")
     print("  8. Jefe de Personal             JEFE_PERSONAL  - Revisa/aprueba/devuelve plan")
     print("  9. Presidente Ejecutivo         PRESIDENTE     - Aprobacion final")
+    print("  10. Carlos A. Andrade           EMPLEADO       - Empleado regular para Autogestion")
     print("\n")
 
 
@@ -218,7 +234,8 @@ def _seed_plan_2025():
                 presupuesto_referencial=random.uniform(500, 3000),
                 mes_ejecucion=random.randint(1, 12),
                 usuario_id=dir_id,
-                plan_id=plan.id
+                plan_id=plan.id,
+                prioridad=random.choice(['ALTA', 'MEDIA', 'BAJA'])
             )
             temas.append(t)
             
@@ -228,7 +245,8 @@ def _seed_plan_2025():
             nombre=f'Curso General de Integración Corporativa {i+1}',
             num_participantes=50, modalidad='MIXTO', horas=20,
             presupuesto_referencial=2000.0, mes_ejecucion=1,
-            usuario_id=1, plan_id=plan.id, es_del_analista=True
+            usuario_id=random.choice([2, 3, 4, 5, 6, 7]), plan_id=plan.id, es_del_analista=True,
+            prioridad=random.choice(['ALTA', 'MEDIA', 'BAJA'])
         )
         temas.append(t)
         
@@ -324,4 +342,78 @@ def _seed_plan_2025():
 
     db.session.commit()
     print(f"  [OK] Escenario masivo 2025 completado: {len(temas)} temas creados, {aprobados_count} aprobados, {num_ejecuciones} ejecutados.")
+
+
+def _seed_plan_2026():
+    from models import PlanCapacitacion, TemaCapacitacion, TemaSeleccionado
+    import random
+    
+    if PlanCapacitacion.query.filter_by(anio=2026).first() is not None:
+        return
+        
+    print("  Creando escenario: Plan 2026 (Borrador)...")
+    
+    # 1. Crear el Plan 2026 en estado BORRADOR
+    plan = PlanCapacitacion(
+        anio=2026,
+        monto_referencial=120000.0,
+        estado='BORRADOR',
+        creado_por_id=1
+    )
+    db.session.add(plan)
+    db.session.flush()
+    
+    # Mapeo de (director_user_id, num_temas, prefijo_nombre)
+    config_temas = [
+        (2, 7, 'Actualización en Comercialización'),
+        (3, 7, 'Nuevas Tecnologías de Distribución'),
+        (4, 5, 'Mantenimiento de Generación'),
+        (5, 5, 'Ciberseguridad y Sistemas'),
+        (6, 5, 'Normativas Financieras'),
+        (7, 5, 'Desarrollo de Talento Humano')
+    ]
+    
+    temas = []
+    
+    # 2. Temas de directores (No se crean EnviosTemasDirector, para que ellos lo hagan)
+    for dir_id, num, prefix in config_temas:
+        for i in range(num):
+            t = TemaCapacitacion(
+                nombre=f'{prefix} - Módulo {i+1} (2026)',
+                num_participantes=random.randint(5, 25),
+                modalidad=random.choice(['VIRTUAL', 'PRESENCIAL', 'MIXTO']),
+                horas=random.randint(16, 120),
+                presupuesto_referencial=random.uniform(800, 3500),
+                mes_ejecucion=random.randint(1, 12),
+                usuario_id=dir_id,
+                plan_id=plan.id,
+                prioridad=random.choice(['ALTA', 'MEDIA', 'BAJA'])
+            )
+            temas.append(t)
+            
+    # 3. Temas del analista (Al menos 2, mayoría gratuitas)
+    for i in range(3):
+        es_gratuita = i < 2 # Las dos primeras son gratuitas
+        t = TemaCapacitacion(
+            nombre=f'Taller Analista 2026 - Tema {i+1}',
+            num_participantes=30, modalidad='VIRTUAL', horas=10,
+            presupuesto_referencial=0.0 if es_gratuita else 1500.0,
+            mes_ejecucion=random.randint(1, 12),
+            usuario_id=random.choice([2, 3, 4, 5, 6, 7]), plan_id=plan.id, es_del_analista=True,
+            prioridad=random.choice(['ALTA', 'MEDIA', 'BAJA'])
+        )
+        temas.append(t)
+        
+    for t in temas:
+        db.session.add(t)
+    db.session.flush()
+    
+    # Crear los TemaSeleccionado por defecto (seleccionado=False)
+    for t in temas:
+        ts = TemaSeleccionado(tema_id=t.id, plan_id=plan.id, seleccionado=False)
+        db.session.add(ts)
+
+    db.session.commit()
+    print(f"  [OK] Escenario 2026 completado: {len(temas)} temas creados en estado Borrador.")
+
 
